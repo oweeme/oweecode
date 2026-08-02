@@ -1,0 +1,77 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OweemeIDE",
+  "version": "1.2.0",
+  "identifier": "com.oweeme.oweemedev",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "OweemeIDE",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 500,
+        "center": true,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "Héctor Martínez — oweeme.com",
+    "copyright": "© 2025 Héctor Martínez / oweeme.com. Todos los derechos reservados.",
+    "category": "DeveloperTool",
+    "shortDescription": "OweemeIDE — El IDE para el desarrollador moderno",
+    "longDescription": "OweemeIDE es un entorno de desarrollo integrado creado por Héctor Martínez (hector@oweeme.com — oweeme.com) pensado para las necesidades reales del desarrollador. Incluye editor de código con resaltado de sintaxis, terminal integrada, explorador de archivos, cliente de bases de datos (MySQL/MariaDB/PostgreSQL/SQLite) y asistente de IA. Desarrollado con Tauri 2, Vue 3 y Rust. Para soporte y actualizaciones futuras visita oweeme.com o escribe a hector@oweeme.com.",
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libayatana-appindicator3-1"],
+        "desktopTemplate": null,
+        "files": {
+          "/usr/share/pixmaps/oweeme-ide.png": "icons/128x128.png",
+          "/usr/share/icons/hicolor/128x128/apps/oweeme-ide.png": "icons/128x128.png",
+          "/usr/share/icons/hicolor/256x256/apps/oweeme-ide.png": "icons/128x128@2x.png",
+          "/usr/share/icons/hicolor/32x32/apps/oweeme-ide.png": "icons/32x32.png"
+        }
+      },
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "nsis": {
+        "installMode": "perMachine",
+        "languages": ["Spanish"],
+        "displayLanguageSelector": false
+      },
+      "wix": {
+        "language": "es-ES"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.13",
+      "signingIdentity": null,
+      "entitlements": null
+    }
+  }
+}

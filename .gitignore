@@ -1,0 +1,38 @@
+
+# Node
+oweemedev/node_modules/
+oweemedev/dist/
+oweemedev/.vite/
+# Archivos
+docs
+
+# Rust / Cargo
+oweemedev/src-tauri/target/
+oweemedev/src-tauri/Cargo.lock
+
+# Tauri generados
+oweemedev/src-tauri/gen/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Claves y secretos
+*.key
+*.pem
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Planes y memoria temporal de Claude
+.claude/plans/
