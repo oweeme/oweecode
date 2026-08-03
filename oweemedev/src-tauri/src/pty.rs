@@ -9,6 +9,7 @@ use once_cell::sync::Lazy;
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use tauri::Emitter;
 
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use crate::util::resolve_login_shell_path;
 
 struct PtySession {

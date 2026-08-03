@@ -14,6 +14,7 @@ use once_cell::sync::Lazy;
 use serde::Serialize;
 use serde_json::{json, Value};
 
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use crate::util::resolve_login_shell_path;
 
 #[derive(Serialize, Clone, Debug, Default)]
