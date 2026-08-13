@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 
-export type TabType = 'code' | 'image' | 'database' | 'ftp' | 'api' | 'ftp-file' | 'cli' | 'redis' | 'git-diff' | 'er-diagram' | 'container-logs' | 'browser' | 'design'
+export type TabType = 'code' | 'image' | 'database' | 'ftp' | 'api' | 'ftp-file' | 'cli' | 'redis' | 'git-diff' | 'er-diagram' | 'container-logs' | 'browser' | 'design' | 'agent'
 
 export interface Tab {
   path: string
@@ -139,7 +139,7 @@ export function useEditorStore() {
       tab.modified = false
       return
     }
-    if (tab.type === 'api' || tab.type === 'database' || tab.type === 'ftp' || tab.type === 'redis' || tab.type === 'cli' || tab.type === 'git-diff' || tab.type === 'er-diagram' || tab.type === 'container-logs' || tab.type === 'browser' || tab.type === 'design') return
+    if (tab.type === 'api' || tab.type === 'database' || tab.type === 'ftp' || tab.type === 'redis' || tab.type === 'cli' || tab.type === 'git-diff' || tab.type === 'er-diagram' || tab.type === 'container-logs' || tab.type === 'browser' || tab.type === 'design' || tab.type === 'agent') return
     await invoke('save_file', { path, content: tab.content })
     tab.modified = false
     window.dispatchEvent(new CustomEvent('file-saved'))
@@ -303,6 +303,16 @@ export function useEditorStore() {
     state.activeTabPath = path
   }
 
+  // Single tab, like a CLI tab — the agent works on the one open project, no
+  // reason to support more than one instance of it at a time.
+  function openAgentTab() {
+    const path = 'agent://main'
+    const existing = state.tabs.find(t => t.path === path)
+    if (existing) { state.activeTabPath = path; return }
+    state.tabs.push({ path, name: 'Agente', content: '', modified: false, language: 'text', type: 'agent' })
+    state.activeTabPath = path
+  }
+
   function openApiRequest(requestId: string, name: string, initialJson?: string) {
     const path = `api://${requestId}`
     const existing = state.tabs.find(t => t.path === path)
@@ -317,5 +327,5 @@ export function useEditorStore() {
     toClose.forEach(t => closeTab(t.path))
   }
 
-  return { state, activeTab, setRootPath, openFile, saveFile, saveActiveFile, updateContent, closeTab, closeTabByPath, renameTab, setActive, setCursor, setSelectedText, openDbTable, openNewTable, tabTableCreated, openFtpConn, openFtpFile, openApiRequest, openCliTab, openRedisConn, openGitDiff, openErDiagram, openContainerLogs, openBrowserTab, openDesignTab }
+  return { state, activeTab, setRootPath, openFile, saveFile, saveActiveFile, updateContent, closeTab, closeTabByPath, renameTab, setActive, setCursor, setSelectedText, openDbTable, openNewTable, tabTableCreated, openFtpConn, openFtpFile, openApiRequest, openCliTab, openAgentTab, openRedisConn, openGitDiff, openErDiagram, openContainerLogs, openBrowserTab, openDesignTab }
 }

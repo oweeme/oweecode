@@ -2,10 +2,12 @@
 import { ref, computed } from 'vue'
 import { useI18n, type Locale } from '../composables/useI18n'
 import { useAppTheme } from '../composables/useAppTheme'
+import OllamaSetup from './OllamaSetup.vue'
 
 const emit = defineEmits<{ close: [] }>()
 const { t, setLocale, locale } = useI18n()
 const { theme, setTheme } = useAppTheme()
+const showOllamaSetup = ref(false)
 
 const LOCALES: { code: Locale; flag: string; label: string }[] = [
   { code: 'en', flag: '🇺🇸', label: 'English' },
@@ -233,6 +235,13 @@ function reset() {
           </button>
         </div>
 
+        <!-- Local AI (Ollama) section -->
+        <div class="pref-section-label" style="margin-top:18px">AGENTE IA LOCAL</div>
+        <p class="lsp-note">
+          El modo Agente y el modelo local corren con <strong>Ollama</strong>, gratis y 100% privado — no viene incluido en la app, cada persona lo instala en su máquina la primera vez que quiere usarlo, sea Windows, macOS o Linux.
+        </p>
+        <button class="pref-ollama-btn" @click="showOllamaSetup = true">⚙ Instalar Ollama / descargar modelos</button>
+
         <!-- Preview box -->
         <div class="pref-section-label" style="margin-top:18px">{{ t('prefsSectionPreview') }}</div>
         <div
@@ -250,6 +259,8 @@ function reset() {
         <button class="pref-save" @click="save">{{ t('prefsApply') }}</button>
       </div>
     </div>
+
+    <OllamaSetup v-if="showOllamaSetup" @close="showOllamaSetup = false" />
   </div>
 </template>
 
@@ -400,6 +411,11 @@ function reset() {
   border: 1px solid rgba(208,208,216,0.2);
   border-radius: 6px;
 }
+.pref-ollama-btn {
+  width: 100%; background: rgba(166,227,161,0.1); border: 1px solid rgba(166,227,161,0.35);
+  color: #a6e3a1; border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.pref-ollama-btn:hover { background: rgba(166,227,161,0.18); }
 .lsp-note :deep(strong) { color: var(--accent); }
 .lsp-row {
   display: flex;

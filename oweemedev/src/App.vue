@@ -567,7 +567,7 @@ function onDbOpenTable(connId: string, tableName: string, connName: string, driv
       <button
         ref="cliMenuBtnEl"
         class="activity-btn activity-btn--ai-group"
-        :class="{ active: (showSidebar && sidebarView === 'ai') || AI_CLIS.some(c => store.state.activeTabPath === `cli://${c.id}`) }"
+        :class="{ active: (showSidebar && sidebarView === 'ai') || store.state.activeTabPath === 'agent://main' || AI_CLIS.some(c => store.state.activeTabPath === `cli://${c.id}`) }"
         :title="t('ai') + ' (Ctrl+Shift+A)'"
         @click.stop="toggleCliMenu"
         style="position:relative"
@@ -596,6 +596,13 @@ function onDbOpenTable(connId: string, tableName: string, connName: string, driv
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 6v4m0 4h.01"/></svg>
           {{ t('ai') }}
+        </button>
+        <button
+          class="settings-popup-item"
+          @click="store.openAgentTab(); showCliMenu = false"
+        >
+          <span style="color:#a6e3a1;font-weight:900;font-size:13px">⬡</span>
+          Agente (Ollama)
         </button>
         <div class="settings-popup-sep" />
         <div class="settings-popup-header">CLI</div>

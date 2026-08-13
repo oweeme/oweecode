@@ -22,6 +22,12 @@ const { containers, runtime, runtimeError, loading } = useContainerStore()
 const showAll = ref(true)
 const busyId = ref<string | null>(null)
 const actionError = ref('')
+// Containers the agent creates get labeled with the project's root path
+// (see agentTools.ts's container_create) — this just asks Podman/Docker to
+// filter by that label instead of listing every container on the system, so
+// "where did my container go" has a direct answer for anyone who used the
+// agent (or hand-wrote a matching --label) to create one.
+const projectOnly = ref(false)
 
 const showFormModal = ref(false)
 const formMode = ref<'create' | 'edit'>('create')
@@ -37,7 +43,9 @@ async function refresh() {
   actionError.value = ''
   try {
     if (!runtime.value) runtime.value = await invoke<string>('container_runtime')
-    containers.value = await invoke<ContainerInfo[]>('container_list', { all: showAll.value })
+    containers.value = projectOnly.value && store.state.rootPath
+      ? await invoke<ContainerInfo[]>('container_list_for_project', { root: store.state.rootPath, all: showAll.value })
+      : await invoke<ContainerInfo[]>('container_list', { all: showAll.value })
     runtimeError.value = ''
   } catch (e: any) {
     runtimeError.value = String(e)
@@ -132,6 +140,14 @@ onMounted(refresh)
     <div class="ctr-header">
       <span class="ctr-title">{{ t('containers') }}</span>
       <div class="ctr-header-btns">
+        <button
+          v-if="store.state.rootPath"
+          class="ctr-icon-btn" :class="{ active: projectOnly }"
+          @click="projectOnly = !projectOnly; refresh()"
+          :title="'Mostrar solo contenedores creados para este proyecto'"
+        >
+          {{ projectOnly ? 'Este proyecto' : 'Todos los proyectos' }}
+        </button>
         <button class="ctr-icon-btn" :class="{ active: showAll }" @click="showAll = !showAll; refresh()" :title="t('showAllContainers')">
           {{ showAll ? t('allLabel') : t('runningLabel') }}
         </button>

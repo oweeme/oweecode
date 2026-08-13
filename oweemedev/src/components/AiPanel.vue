@@ -3,6 +3,9 @@ import { ref, nextTick, computed, watch, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useEditorStore } from '../composables/useEditorStore'
 import { useI18n } from '../composables/useI18n'
+import { useProjectMemory } from '../composables/useProjectMemory'
+import { renderContent } from '../composables/aiMarkdown'
+import { AI_PROVIDERS, loadProviderKey, saveProviderKey, type Provider } from '../composables/aiProviders'
 
 const { t } = useI18n()
 
@@ -23,73 +26,18 @@ const messagesEl = ref<HTMLElement | null>(null)
 const showSettings = ref(false)
 const applyTarget = ref<{ msgIdx: number; code: string } | null>(null)
 
-// ── Shared project context (AGENTS.md) ──────────────────────────────────────
-// A single markdown file at the project root, in the open AGENTS.md convention
-// that Aider/Cursor/Copilot and others already read — so whatever gets saved
-// here isn't locked into OweemeIDE's own chat, it's picked up by other AI
-// tools on the same project too (and this panel reads it back as context).
-const AGENTS_FILE = 'AGENTS.md'
-const projectContext = ref('')
-const savingContext = ref(false)
-const contextStatus = ref('')
-
-function agentsFilePath(): string | null {
-  return store.state.rootPath ? `${store.state.rootPath}/${AGENTS_FILE}` : null
-}
-
-async function loadProjectContext() {
-  const path = agentsFilePath()
-  if (!path) { projectContext.value = ''; return }
-  try { projectContext.value = await invoke<string>('open_file', { path }) }
-  catch { projectContext.value = '' }
-}
-
-// Keeps the file from growing forever (and from bloating every future system
-// prompt) — only the last MAX_SECTIONS dated summaries are kept.
-const MAX_CONTEXT_SECTIONS = 10
+// ── Shared project context (AGENTS.md) — see useProjectMemory.ts ───────────
+const { projectContext, savingContext, contextStatus, loadProjectContext, saveProjectContext: saveProjectContextRaw } = useProjectMemory()
 
 async function saveProjectContext() {
-  const path = agentsFilePath()
-  if (!path) { error.value = t('noProjectForContext'); return }
   if (messages.value.length === 0) return
-  savingContext.value = true
-  try {
-    const transcript = messages.value.map(m => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`).join('\n\n')
-    const summary = await invoke<string>('call_ai', {
-      provider: provider.value,
-      apiKey: apiKey.value,
-      model: model.value,
-      system: 'Resumí la siguiente conversación de asistencia de código en 3 a 6 viñetas breves y concretas: qué se pidió, qué se decidió o cambió, y cualquier dato que una IA distinta necesitaría para continuar este proyecto sin volver a preguntar. Responde solo con las viñetas en markdown, sin introducción ni cierre.',
-      messages: [{ role: 'user', content: transcript.slice(-8000) }],
-    })
-    const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ')
-    const header = `# Contexto del proyecto (AGENTS.md)\n\nResumen compartido para que cualquier asistente de IA (Claude Code, Aider, el chat de OweemeIDE, etc.) continúe con el contexto de este proyecto sin partir de cero.\n`
-    const existingSections = projectContext.value
-      ? projectContext.value.replace(header, '').split(/\n(?=## )/).filter(s => s.trim())
-      : []
-    const newSection = `## ${timestamp}\n${summary.trim()}`
-    const sections = [...existingSections, newSection].slice(-MAX_CONTEXT_SECTIONS)
-    const content = header + '\n' + sections.join('\n\n') + '\n'
-    await invoke('save_file', { path, content })
-    projectContext.value = content
-    contextStatus.value = t('contextSavedPrefix')
-    setTimeout(() => { contextStatus.value = '' }, 4000)
-  } catch (e: any) {
-    error.value = String(e)
-  } finally {
-    savingContext.value = false
-  }
+  const transcript = messages.value.map(m => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`).join('\n\n')
+  const ok = await saveProjectContextRaw(store.state.rootPath, transcript, { provider: provider.value, apiKey: apiKey.value, model: model.value })
+  if (!ok) error.value = t('noProjectForContext')
 }
 
-type Provider = 'deepseek' | 'claude' | 'openai' | 'gemini' | 'ollama' | 'groq' | 'openrouter' | 'omniroute'
 const provider = ref<Provider>((localStorage.getItem('ai_provider') as Provider) ?? 'claude')
-
-function loadKey(p: Provider): string {
-  if (p === 'ollama') return 'ollama'
-  return localStorage.getItem(`ai_key_${p}`) ?? ''
-}
-
-const apiKey = ref(loadKey(provider.value))
+const apiKey = ref(loadProviderKey(provider.value))
 const model = ref(localStorage.getItem('ai_model') ?? 'claude-sonnet-4-6')
 const ollamaModels = ref<string[]>([])
 const ollamaLoading = ref(false)
@@ -102,117 +50,8 @@ const openrouterModels = ref<{ id: string; label: string }[]>([])
 const openrouterLoading = ref(false)
 const openrouterError = ref('')
 
-interface ProviderInfo {
-  label: string; badge: string; color: string; icon: string
-  keyLabel: string; keyPlaceholder: string; keyUrl: string; keyNote: string
-  models: { id: string; label: string }[]
-}
-
-const PROVIDERS: Record<Provider, ProviderInfo> = {
-  claude: {
-    label: 'Claude', badge: 'Claude', color: '#d97706', icon: '◆',
-    keyLabel: 'API Key — console.anthropic.com',
-    keyPlaceholder: 'sk-ant-...',
-    keyUrl: 'https://console.anthropic.com/settings/keys',
-    keyNote: 'Tu suscripción Claude.ai Pro NO incluye API. Son cuentas separadas. Sin API key: escribe "claude" en la terminal del IDE para usar tu plan Pro directamente.',
-    models: [
-      { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6 (Recomendado)' },
-      { id: 'claude-haiku-4-5-20251001',  label: 'Claude Haiku 4.5 (Rápido, económico)' },
-      { id: 'claude-opus-4-8',            label: 'Claude Opus 4.8 (Más potente)' },
-    ],
-  },
-  deepseek: {
-    label: 'DeepSeek', badge: 'DeepSeek', color: '#4d9de0', icon: '◈',
-    keyLabel: 'API Key — platform.deepseek.com',
-    keyPlaceholder: 'sk-...',
-    keyUrl: 'https://platform.deepseek.com/api_keys',
-    keyNote: 'API muy económica. $0.14/M tokens para DeepSeek-Coder. Ideal para código.',
-    models: [
-      { id: 'deepseek-coder',    label: 'DeepSeek Coder (Código)' },
-      { id: 'deepseek-chat',     label: 'DeepSeek Chat (General)' },
-      { id: 'deepseek-reasoner', label: 'DeepSeek Reasoner' },
-    ],
-  },
-  gemini: {
-    label: 'Gemini', badge: 'Gemini', color: '#4285f4', icon: '◈',
-    keyLabel: 'API Key — aistudio.google.com',
-    keyPlaceholder: 'AIza...',
-    keyUrl: 'https://aistudio.google.com/app/apikey',
-    keyNote: 'Tu plan Google AI Plus es para la app de Gemini, NO para la API. Ve a aistudio.google.com → Get API key. Es GRATIS por separado.',
-    models: [
-      { id: 'gemini-2.0-flash',        label: 'Gemini 2.0 Flash (Gratis)' },
-      { id: 'gemini-2.0-flash-lite',   label: 'Gemini 2.0 Flash Lite' },
-      { id: 'gemini-1.5-pro-latest',   label: 'Gemini 1.5 Pro' },
-    ],
-  },
-  openai: {
-    label: 'OpenAI', badge: 'OpenAI', color: '#10a37f', icon: '⬡',
-    keyLabel: 'API Key — platform.openai.com',
-    keyPlaceholder: 'sk-...',
-    keyUrl: 'https://platform.openai.com/api-keys',
-    keyNote: 'Requiere cuenta con créditos en platform.openai.com.',
-    models: [
-      { id: 'gpt-4o',      label: 'GPT-4o (Recomendado)' },
-      { id: 'gpt-4o-mini', label: 'GPT-4o Mini (Rápido)' },
-    ],
-  },
-  ollama: {
-    label: 'Ollama (Local)', badge: 'Ollama', color: '#a6e3a1', icon: '⬡',
-    keyLabel: 'Sin API key — corre localmente',
-    keyPlaceholder: '(no requerida)',
-    keyUrl: 'https://ollama.com',
-    keyNote: 'Instala Ollama y ejecuta: ollama pull llama3. 100% privado y gratis.',
-    models: [
-      { id: 'llama3',       label: 'Llama 3' },
-      { id: 'codellama',    label: 'CodeLlama' },
-      { id: 'deepseek-coder', label: 'DeepSeek Coder' },
-      { id: 'mistral',      label: 'Mistral 7B' },
-    ],
-  },
-  groq: {
-    label: 'Groq', badge: 'Groq', color: '#f55036', icon: '⚡',
-    keyLabel: 'API Key — console.groq.com',
-    keyPlaceholder: 'gsk_...',
-    keyUrl: 'https://console.groq.com/keys',
-    keyNote: 'GRATIS con límites de uso generosos. Inferencia extremadamente rápida (LPU).',
-    models: [
-      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (Recomendado)' },
-      { id: 'llama-3.1-8b-instant',    label: 'Llama 3.1 8B (Rápido)' },
-      { id: 'gemma2-9b-it',            label: 'Gemma 2 9B' },
-      { id: 'mixtral-8x7b-32768',      label: 'Mixtral 8x7B' },
-    ],
-  },
-  openrouter: {
-    label: 'OpenRouter', badge: 'OpenRouter', color: '#8b5cf6', icon: '◇',
-    keyLabel: 'API Key — openrouter.ai',
-    keyPlaceholder: 'sk-or-...',
-    keyUrl: 'https://openrouter.ai/keys',
-    keyNote: 'La lista de modelos se consulta en vivo — el catálogo gratis de OpenRouter cambia seguido, así que evitamos IDs fijos que dejan de existir.',
-    // Placeholder shown only for the instant before detectOpenrouterModels()'s live
-    // fetch resolves (triggered automatically on selecting this provider) — the
-    // actual free catalog changes over time, so this single entry is just a safe
-    // non-empty default, never relied on for real use.
-    models: [
-      { id: 'openai/gpt-oss-20b:free', label: 'Cargando catálogo gratis…' },
-    ],
-  },
-  omniroute: {
-    label: 'OmniRoute', badge: 'OmniRoute (local)', color: '#10b981', icon: '⇄',
-    keyLabel: 'Dashboard key — localhost:20128/dashboard',
-    keyPlaceholder: 'omni_...',
-    keyUrl: 'http://localhost:20128/dashboard',
-    keyNote: 'Primero abrí la pestaña "OmniRoute" (menú de CLIs, ícono ⚡) e instalalo/dejalo corriendo ahí — es un servidor local, no arranca solo. Recién ahí vas a poder abrir el dashboard y conseguir tu clave. Enruta entre 268+ proveedores con más de 90 niveles gratis.',
-    models: [
-      { id: 'auto',    label: 'Auto (elige el mejor disponible, gratis primero)' },
-      { id: '/coding', label: 'Coding (prioriza modelos de código)' },
-      { id: '/fast',   label: 'Fast (prioriza velocidad)' },
-      { id: '/cheap',  label: 'Cheap (prioriza costo)' },
-    ],
-  },
-}
-
-const currentProvider = computed(() => PROVIDERS[provider.value])
-const modelOptions = computed(() => PROVIDERS[provider.value].models)
+const currentProvider = computed(() => AI_PROVIDERS[provider.value])
+const modelOptions = computed(() => AI_PROVIDERS[provider.value].models)
 
 // Context awareness
 const activeTab = computed(() => store.activeTab())
@@ -251,8 +90,11 @@ async function detectOllamaModels() {
   try {
     const models = await invoke<string[]>('list_ollama_models')
     ollamaModels.value = models
-    if (models.length > 0) model.value = models[0]
-    else ollamaError.value = 'No hay modelos. Usa: ollama pull llama3'
+    // Only jump to a different model if the saved one isn't actually pulled —
+    // otherwise this would silently reset the user's choice back to models[0]
+    // every time the settings panel reopens.
+    if (models.length > 0 && !models.includes(model.value)) model.value = models[0]
+    else if (models.length === 0) ollamaError.value = 'No hay modelos descargados. Usá: ollama pull qwen2.5-coder:7b-instruct-q4_K_M'
   } catch (e: any) { ollamaError.value = String(e) }
   ollamaLoading.value = false
 }
@@ -291,49 +133,32 @@ function persistChat() {
 // that was free when last saved can stop being free at any time.
 onMounted(() => {
   if (provider.value === 'openrouter') detectOpenrouterModels()
+  if (provider.value === 'ollama') detectOllamaModels()
   try {
     const saved = localStorage.getItem(chatStorageKey())
     if (saved) messages.value = JSON.parse(saved)
   } catch { /* corrupt/old entry — start fresh rather than crash the panel */ }
-  loadProjectContext()
+  loadProjectContext(store.state.rootPath)
 })
 
 function saveSettings() {
   localStorage.setItem('ai_provider', provider.value)
-  if (provider.value !== 'ollama') localStorage.setItem(`ai_key_${provider.value}`, apiKey.value)
+  saveProviderKey(provider.value, apiKey.value)
   localStorage.setItem('ai_model', model.value)
   showSettings.value = false
 }
 
 function onProviderChange() {
-  model.value = PROVIDERS[provider.value].models[0].id
-  apiKey.value = loadKey(provider.value)
-  checkOmniStatus()
+  model.value = AI_PROVIDERS[provider.value].models[0].id
+  apiKey.value = loadProviderKey(provider.value)
   if (provider.value === 'openrouter' && openrouterModels.value.length === 0) detectOpenrouterModels()
+  if (provider.value === 'ollama') detectOllamaModels()
 }
 
-// OmniRoute is a local service the user has to install and run themselves (it
-// doesn't start on its own), so "no funciona" there is usually really "no está
-// corriendo" rather than a missing API key — check it directly instead of
-// leaving that ambiguous.
-const omniStatus = ref<'checking' | 'up' | 'down'>('checking')
-async function checkOmniStatus() {
-  if (provider.value !== 'omniroute') return
-  omniStatus.value = 'checking'
-  try {
-    const ctrl = new AbortController()
-    const timeout = setTimeout(() => ctrl.abort(), 1500)
-    await fetch('http://localhost:20128/', { signal: ctrl.signal, mode: 'no-cors' })
-    clearTimeout(timeout)
-    omniStatus.value = 'up'
-  } catch {
-    omniStatus.value = 'down'
-  }
-}
 watch(showSettings, (open) => {
   if (!open) return
-  checkOmniStatus()
   if (provider.value === 'openrouter' && openrouterModels.value.length === 0) detectOpenrouterModels()
+  if (provider.value === 'ollama') detectOllamaModels()
 })
 
 // Quick action shortcuts
@@ -369,7 +194,7 @@ async function sendMessage(useSelection = true) {
       .slice(-12)
       .map(m => ({ role: m.role, content: m.content }))
 
-    const agentsCtx = projectContext.value ? `\n\n--- ${AGENTS_FILE} (contexto acumulado del proyecto) ---\n${projectContext.value}` : ''
+    const agentsCtx = projectContext.value ? `\n\n--- AGENTS.md (contexto acumulado del proyecto) ---\n${projectContext.value}` : ''
     const systemWithCtx = getSystemPrompt() + agentsCtx + ctx
 
     const reply = await invoke<string>('call_ai', {
@@ -441,24 +266,6 @@ function insertCode(content: string) {
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
 }
-
-function renderContent(text: string): string {
-  // Escape the whole message first — the AI's reply is untrusted text (it can
-  // echo back content from files/URLs the user asked it to read), so anything
-  // outside a fenced code block must not reach v-html unescaped.
-  return escHtml(text)
-    .replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
-      `<pre class="ai-code-block" data-lang="${lang || 'code'}"><div class="ai-code-lang">${lang || 'code'}</div><code>${code.trim()}</code></pre>`)
-    .replace(/`([^`\n]+)`/g, '<code class="ai-inline-code">$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^#{1,3} (.+)$/gm, '<p class="ai-heading">$1</p>')
-    .replace(/\n/g, '<br>')
-}
-
-function escHtml(s: string) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-}
 </script>
 
 <template>
@@ -504,7 +311,7 @@ function escHtml(s: string) {
         <div class="settings-field">
           <label>{{ t('provider') }}</label>
           <div class="provider-grid">
-            <label v-for="(info, key) in PROVIDERS" :key="key" class="provider-opt"
+            <label v-for="(info, key) in AI_PROVIDERS" :key="key" class="provider-opt"
               :class="{ active: provider === key }"
               :style="provider === key ? { borderColor: info.color, color: info.color, background: info.color + '15' } : {}">
               <input type="radio" v-model="provider" :value="key" @change="onProviderChange" hidden />
@@ -557,88 +364,74 @@ function escHtml(s: string) {
           </button>
         </div>
 
-        <!-- OmniRoute shortcut + live status -->
-        <div v-if="provider === 'omniroute'" class="claude-cli-box">
-          <div class="cli-box-title">
-            ⇄ OmniRoute
-            <span class="omni-status" :class="omniStatus">
-              {{ omniStatus === 'checking' ? '· comprobando…' : omniStatus === 'up' ? '· corriendo' : '· no está corriendo' }}
-            </span>
-          </div>
-          <p class="cli-box-desc">Es un servidor local — hay que instalarlo y dejarlo corriendo en su propia pestaña antes de poder usarlo acá.</p>
-          <button class="cli-launch-btn" @click="store.openCliTab('omniroute', 'OmniRoute'); showSettings = false">
-            Abrir pestaña OmniRoute →
-          </button>
-        </div>
-
         <button class="settings-save" @click="saveSettings">{{ t('saveAndClose') }}</button>
       </div>
     </transition>
 
     <!-- Messages -->
     <div ref="messagesEl" class="ai-messages">
-      <!-- Empty state with quick actions -->
-      <div v-if="messages.length === 0" class="ai-empty">
-        <img src="/oweedev.png" width="40" height="40" style="border-radius:10px;opacity:.7;margin-bottom:4px" />
-        <p class="ai-empty-title">OweemeIDE AI Assistant</p>
-        <p class="ai-empty-sub">{{ currentProvider.icon }} {{ currentProvider.label }} · {{ model }}</p>
+        <!-- Empty state with quick actions -->
+        <div v-if="messages.length === 0" class="ai-empty">
+          <img src="/oweedev.png" width="40" height="40" style="border-radius:10px;opacity:.7;margin-bottom:4px" />
+          <p class="ai-empty-title">OweemeIDE AI Assistant</p>
+          <p class="ai-empty-sub">{{ currentProvider.icon }} {{ currentProvider.label }} · {{ model }}</p>
 
-        <div v-if="hasFile" class="ai-quick-actions">
-          <p class="ai-quick-label">{{ t('quickActionsFor') }} <strong>{{ activeTab?.name }}</strong></p>
-          <button class="qa-btn" @click="quickAsk('Explica este código en detalle')">📖 {{ t('explainCode') }}</button>
-          <button class="qa-btn" @click="quickAsk('Encuentra bugs y problemas en este código')">🐛 {{ t('findBugs') }}</button>
-          <button class="qa-btn" @click="quickAsk('Refactoriza y mejora este código')">⚡ {{ t('refactorCode') }}</button>
-          <button class="qa-btn" @click="quickAsk('Escribe pruebas unitarias para este código')">🧪 {{ t('generateTests') }}</button>
-          <button class="qa-btn" @click="quickAsk('Agrega comentarios JSDoc/PHPDoc a este código')">📝 {{ t('documentCode') }}</button>
-          <button class="qa-btn" @click="quickAsk('Optimiza el rendimiento de este código')">🚀 {{ t('optimizeCode') }}</button>
-        </div>
-        <div v-else class="ai-quick-actions">
-          <p class="ai-quick-label">{{ t('suggestions') }}</p>
-          <button class="qa-btn" @click="quickAsk('¿Cómo crear una API REST en PHP?', false)">PHP API REST</button>
-          <button class="qa-btn" @click="quickAsk('¿Cómo hacer queries complejos en SQL?', false)">SQL Queries</button>
-          <button class="qa-btn" @click="quickAsk('Explícame Vue 3 Composition API', false)">Vue 3 Composition</button>
-          <button class="qa-btn" @click="quickAsk('¿Cómo funciona async/await en JS?', false)">Async/Await JS</button>
-        </div>
-      </div>
-
-      <!-- Messages list -->
-      <div v-for="(msg, i) in messages" :key="i" class="ai-msg" :class="msg.role === 'user' ? 'ai-msg--user' : 'ai-msg--bot'">
-        <!-- User message -->
-        <template v-if="msg.role === 'user'">
-          <div class="ai-msg-bubble ai-msg-bubble--user">
-            <div v-if="msg.context" class="ai-msg-ctx">{{ msg.context }}</div>
-            <div class="ai-user-text">{{ msg.content }}</div>
+          <div v-if="hasFile" class="ai-quick-actions">
+            <p class="ai-quick-label">{{ t('quickActionsFor') }} <strong>{{ activeTab?.name }}</strong></p>
+            <button class="qa-btn" @click="quickAsk('Explica este código en detalle')">📖 {{ t('explainCode') }}</button>
+            <button class="qa-btn" @click="quickAsk('Encuentra bugs y problemas en este código')">🐛 {{ t('findBugs') }}</button>
+            <button class="qa-btn" @click="quickAsk('Refactoriza y mejora este código')">⚡ {{ t('refactorCode') }}</button>
+            <button class="qa-btn" @click="quickAsk('Escribe pruebas unitarias para este código')">🧪 {{ t('generateTests') }}</button>
+            <button class="qa-btn" @click="quickAsk('Agrega comentarios JSDoc/PHPDoc a este código')">📝 {{ t('documentCode') }}</button>
+            <button class="qa-btn" @click="quickAsk('Optimiza el rendimiento de este código')">🚀 {{ t('optimizeCode') }}</button>
           </div>
-        </template>
-
-        <!-- Assistant message -->
-        <template v-else>
-          <div class="ai-msg-avatar">
-            <span :style="{ color: currentProvider.color }">{{ currentProvider.icon }}</span>
+          <div v-else class="ai-quick-actions">
+            <p class="ai-quick-label">{{ t('suggestions') }}</p>
+            <button class="qa-btn" @click="quickAsk('¿Cómo crear una API REST en PHP?', false)">PHP API REST</button>
+            <button class="qa-btn" @click="quickAsk('¿Cómo hacer queries complejos en SQL?', false)">SQL Queries</button>
+            <button class="qa-btn" @click="quickAsk('Explícame Vue 3 Composition API', false)">Vue 3 Composition</button>
+            <button class="qa-btn" @click="quickAsk('¿Cómo funciona async/await en JS?', false)">Async/Await JS</button>
           </div>
-          <div class="ai-msg-body">
-            <div v-html="renderContent(msg.content)" class="ai-rendered" />
-            <!-- Action buttons for assistant messages with code -->
-            <div v-if="msg.content.includes('```')" class="ai-msg-actions">
-              <button class="ai-action-btn ai-action-apply" @click="applyCode(msg.content, i)" :title="t('applyToFileTitle')">
-                {{ t('applyBtnShort') }}
-              </button>
-              <button class="ai-action-btn" @click="insertCode(msg.content)" :title="t('insertAtEndTitle')">
-                {{ t('insertBtnShort') }}
-              </button>
-              <button v-if="hasRunnable(msg.content)" class="ai-action-btn ai-action-run" @click="runInTerminal(msg.content)" :title="t('runInTerminalTitle')">
-                {{ t('runBtnShort') }}
-              </button>
+        </div>
+
+        <!-- Messages list -->
+        <div v-for="(msg, i) in messages" :key="i" class="ai-msg" :class="msg.role === 'user' ? 'ai-msg--user' : 'ai-msg--bot'">
+          <!-- User message -->
+          <template v-if="msg.role === 'user'">
+            <div class="ai-msg-bubble ai-msg-bubble--user">
+              <div v-if="msg.context" class="ai-msg-ctx">{{ msg.context }}</div>
+              <div class="ai-user-text">{{ msg.content }}</div>
             </div>
-          </div>
-        </template>
-      </div>
+          </template>
 
-      <!-- Loading -->
-      <div v-if="isLoading" class="ai-msg ai-msg--bot">
-        <div class="ai-msg-avatar"><span :style="{ color: currentProvider.color }">{{ currentProvider.icon }}</span></div>
-        <div class="ai-typing"><span /><span /><span /></div>
-      </div>
+          <!-- Assistant message -->
+          <template v-else>
+            <div class="ai-msg-avatar">
+              <span :style="{ color: currentProvider.color }">{{ currentProvider.icon }}</span>
+            </div>
+            <div class="ai-msg-body">
+              <div v-html="renderContent(msg.content)" class="ai-rendered" />
+              <!-- Action buttons for assistant messages with code -->
+              <div v-if="msg.content.includes('```')" class="ai-msg-actions">
+                <button class="ai-action-btn ai-action-apply" @click="applyCode(msg.content, i)" :title="t('applyToFileTitle')">
+                  {{ t('applyBtnShort') }}
+                </button>
+                <button class="ai-action-btn" @click="insertCode(msg.content)" :title="t('insertAtEndTitle')">
+                  {{ t('insertBtnShort') }}
+                </button>
+                <button v-if="hasRunnable(msg.content)" class="ai-action-btn ai-action-run" @click="runInTerminal(msg.content)" :title="t('runInTerminalTitle')">
+                  {{ t('runBtnShort') }}
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="isLoading" class="ai-msg ai-msg--bot">
+          <div class="ai-msg-avatar"><span :style="{ color: currentProvider.color }">{{ currentProvider.icon }}</span></div>
+          <div class="ai-typing"><span /><span /><span /></div>
+        </div>
     </div>
 
     <!-- Apply confirmation modal -->
@@ -782,16 +575,7 @@ function escHtml(s: string) {
   background: rgba(217, 119, 6, 0.08); border: 1px solid rgba(217,119,6,0.3);
   border-radius: 8px; padding: 10px 12px; margin: 10px 0;
 }
-.claude-cli-box:has(.omni-status) {
-  background: rgba(16, 185, 129, 0.08); border-color: rgba(16,185,129,0.3);
-}
-.claude-cli-box:has(.omni-status) .cli-box-title { color: #10b981; }
-.claude-cli-box:has(.omni-status) .cli-launch-btn { background: #10b981; }
 .cli-box-title { font-size: 12px; font-weight: 700; color: #d97706; margin-bottom: 4px; }
-.omni-status { font-size: 10px; font-weight: 600; margin-left: 4px; }
-.omni-status.checking { color: var(--fg-muted); }
-.omni-status.up { color: #3fb950; }
-.omni-status.down { color: #f85149; }
 .cli-box-desc { font-size: 10.5px; color: var(--fg-muted); margin-bottom: 8px; line-height: 1.4; }
 .cli-launch-btn {
   background: #d97706; border: none; border-radius: 6px;

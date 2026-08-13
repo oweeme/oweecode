@@ -29,12 +29,7 @@ export const AI_CLIS: AiCliDef[] = [
     id: 'aider', label: 'Aider', icon: '✦', color: '#f5a623',
     command: 'aider', installCmd: 'curl -LsSf https://aider.chat/install.sh | sh',
     installCmdWindows: 'python -m pip install aider-install; aider-install',
-    tip: 'Open source, usa automáticamente el proveedor configurado en "Configuración AI" (incluye OpenRouter y OmniRoute)',
-  },
-  {
-    id: 'omniroute', label: 'OmniRoute', icon: '⇄', color: '#10b981',
-    command: 'omniroute', installCmd: 'npm install -g omniroute',
-    tip: 'Corre en tu máquina y expone http://localhost:20128 — dejalo abierto en esta pestaña mientras uses OmniRoute como proveedor en "Configuración AI"',
+    tip: 'Open source, usa automáticamente el proveedor configurado en "Configuración AI" (incluye Ollama y OpenRouter)',
   },
 ]
 
@@ -48,14 +43,16 @@ export function cliMeta(id: string): AiCliDef {
 // week can lose that status, breaking whatever has its id saved (the chat panel,
 // Aider's launch env). Both call this before actually using the saved model, so
 // a stale id gets silently swapped for a currently-free one instead of erroring.
-export async function ensureFreshOpenrouterModel(): Promise<void> {
-  if (localStorage.getItem('ai_provider') !== 'openrouter') return
+// Takes the localStorage key names since the chat panel and Aider's own
+// independent model picker each keep their own provider/model selection.
+export async function ensureFreshOpenrouterModel(providerKey = 'ai_provider', modelKey = 'ai_model'): Promise<void> {
+  if (localStorage.getItem(providerKey) !== 'openrouter') return
   try {
     const models = await invoke<{ id: string; name: string }[]>('list_openrouter_free_models')
     if (!models.length) return
-    const current = localStorage.getItem('ai_model') ?? ''
+    const current = localStorage.getItem(modelKey) ?? ''
     if (!models.some(m => m.id === current)) {
-      localStorage.setItem('ai_model', models[0].id)
+      localStorage.setItem(modelKey, models[0].id)
     }
   } catch { /* best-effort — leave the saved model as-is if the check itself fails */ }
 }

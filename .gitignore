@@ -16,6 +16,7 @@ oweemedev/src-tauri/gen/
 # OS
 .DS_Store
 Thumbs.db
+.directory
 
 # Editor
 .vscode/settings.json

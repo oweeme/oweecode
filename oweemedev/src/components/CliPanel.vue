@@ -13,6 +13,7 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { useEditorStore } from '../composables/useEditorStore'
 import { useI18n } from '../composables/useI18n'
 import { cliMeta, ensureFreshOpenrouterModel } from '../composables/aiClis'
+import { AI_PROVIDERS, loadProviderKey, saveProviderKey, type Provider } from '../composables/aiProviders'
 import '@xterm/xterm/css/xterm.css'
 
 const props = defineProps<{
@@ -60,21 +61,61 @@ const attachments = ref<Attachment[]>([])
 const isWindows = navigator.userAgent.includes('Windows')
 const displayInstallCmd = (isWindows && meta.installCmdWindows) ? meta.installCmdWindows : meta.installCmd
 
-// Aider works with almost any LLM backend, so instead of leaving the user to set
-// this up by hand, launch it pre-wired to whatever provider/model/API key is
-// already configured in the AI Code Assistant panel — including OpenRouter and
-// OmniRoute, which is what turns those into a real agentic CLI experience.
+// Aider works with almost any LLM backend. Unlike the plain "ollama run"
+// CLI tab, Aider IS a real agent (reads/writes files, git-aware) — so instead
+// of tying it to whatever the chat panel happens to have selected, it gets
+// its own independent provider+model choice (`aider_provider`/`aider_model`),
+// letting the user switch models for Aider without touching Configuración AI
+// or losing the chat panel's own selection. The API key itself is still
+// shared per-provider (ai_key_${provider}) since it's the same account
+// either way — only the *choice* of provider/model is independent.
+const AIDER_PROVIDER_KEY = 'aider_provider'
+const AIDER_MODEL_KEY = 'aider_model'
+const aiderProvider = ref<Provider>(
+  (localStorage.getItem(AIDER_PROVIDER_KEY) as Provider) ?? (localStorage.getItem('ai_provider') as Provider) ?? 'claude'
+)
+const aiderModel = ref(
+  localStorage.getItem(AIDER_MODEL_KEY) ?? localStorage.getItem('ai_model') ?? AI_PROVIDERS[aiderProvider.value].models[0]?.id ?? ''
+)
+const aiderApiKey = ref(loadProviderKey(aiderProvider.value))
+const showAiderConfig = ref(false)
+
+// OpenRouter's model list in AI_PROVIDERS is just a loading placeholder — the
+// real free catalog is fetched live, same as the chat panel does.
+const aiderOpenrouterModels = ref<{ id: string; label: string }[]>([])
+async function detectAiderOpenrouterModels() {
+  try {
+    const models = await invoke<{ id: string; name: string }[]>('list_openrouter_free_models')
+    aiderOpenrouterModels.value = models.map(m => ({ id: m.id, label: `${m.name} (Gratis)` }))
+    if (models.length && !models.some(m => m.id === aiderModel.value)) aiderModel.value = models[0].id
+  } catch { /* best-effort — the static placeholder stays if this fails */ }
+}
+if (aiderProvider.value === 'openrouter') detectAiderOpenrouterModels()
+
+function onAiderProviderChange() {
+  aiderModel.value = AI_PROVIDERS[aiderProvider.value].models[0]?.id ?? ''
+  aiderApiKey.value = loadProviderKey(aiderProvider.value)
+  if (aiderProvider.value === 'openrouter') detectAiderOpenrouterModels()
+}
+
+async function saveAiderConfig() {
+  localStorage.setItem(AIDER_PROVIDER_KEY, aiderProvider.value)
+  localStorage.setItem(AIDER_MODEL_KEY, aiderModel.value)
+  saveProviderKey(aiderProvider.value, aiderApiKey.value)
+  showAiderConfig.value = false
+  if (isRunning.value) await restartCli()
+}
+
 async function buildAiderLaunch(): Promise<{ env: [string, string][]; args: string[] }> {
-  const provider = localStorage.getItem('ai_provider') ?? ''
-  if (provider === 'openrouter') await ensureFreshOpenrouterModel()
-  const apiKey = localStorage.getItem(`ai_key_${provider}`) ?? ''
-  const model = localStorage.getItem('ai_model') ?? ''
-  if (!provider || !apiKey) return { env: [], args: [] }
+  const provider = aiderProvider.value
+  if (provider === 'openrouter') await ensureFreshOpenrouterModel(AIDER_PROVIDER_KEY, AIDER_MODEL_KEY)
+  const apiKey = loadProviderKey(provider)
+  const model = localStorage.getItem(AIDER_MODEL_KEY) ?? aiderModel.value
+  if (provider !== 'ollama' && !apiKey) return { env: [], args: [] }
 
   const openaiCompatBase: Record<string, string> = {
     groq: 'https://api.groq.com/openai/v1',
     openrouter: 'https://openrouter.ai/api/v1',
-    omniroute: 'http://localhost:20128/v1',
     deepseek: 'https://api.deepseek.com',
   }
   if (provider === 'claude') return { env: [['ANTHROPIC_API_KEY', apiKey]], args: [] }
@@ -86,22 +127,8 @@ async function buildAiderLaunch(): Promise<{ env: [string, string][]; args: stri
       args: model ? ['--model', `openai/${model}`] : [],
     }
   }
-  if (provider === 'ollama') return { env: [['OLLAMA_API_BASE', 'http://localhost:11434']], args: model ? ['--model', `ollama/${model}`] : [] }
+  if (provider === 'ollama') return { env: [['OLLAMA_API_BASE', 'http://localhost:11434']], args: model ? ['--model', `ollama_chat/${model}`] : [] }
   return { env: [], args: [] }
-}
-
-const PROVIDER_LABELS: Record<string, string> = {
-  claude: 'Claude', openai: 'OpenAI', gemini: 'Gemini', deepseek: 'DeepSeek',
-  groq: 'Groq', openrouter: 'OpenRouter', omniroute: 'OmniRoute', ollama: 'Ollama',
-}
-// Shown in the header so it's obvious Aider isn't its own separate "CLI provider" —
-// it's a generic agentic CLI that channels whatever's picked in Configuración AI,
-// OpenRouter/OmniRoute included. Refreshed every time it (re)starts, since the
-// user may switch providers in the AI panel between runs.
-const aiderProviderLabel = ref<string | null>(null)
-function refreshAiderProviderLabel() {
-  if (meta.id !== 'aider') return
-  aiderProviderLabel.value = PROVIDER_LABELS[localStorage.getItem('ai_provider') ?? ''] ?? null
 }
 
 async function attachFiles() {
@@ -239,7 +266,6 @@ async function startCli() {
 
   const cwd = store.state.rootPath || (await invoke<string>('get_home_dir').catch(() => '/'))
 
-  refreshAiderProviderLabel()
   const launch = meta.id === 'aider' ? await buildAiderLaunch() : { env: [], args: [] }
 
   try {
@@ -317,7 +343,9 @@ async function sendFileContext() {
       <div class="cli-header-left">
         <span class="cli-icon" :style="{ color: meta.color }">{{ meta.icon }}</span>
         <span class="cli-title">{{ meta.label }}</span>
-        <span v-if="aiderProviderLabel" class="cli-provider-badge">⇄ {{ aiderProviderLabel }}</span>
+        <button v-if="meta.id === 'aider'" class="cli-provider-badge cli-provider-badge--btn" @click="showAiderConfig = !showAiderConfig">
+          ⇄ {{ AI_PROVIDERS[aiderProvider].label }} · {{ aiderModel }}
+        </button>
         <span class="cli-status" :class="isRunning ? 'cli-status--on' : 'cli-status--off'">
           {{ isRunning ? t('active') : t('inactive') }}
         </span>
@@ -343,6 +371,31 @@ async function sendFileContext() {
           </svg>
         </button>
       </div>
+    </div>
+
+    <!-- Aider's own independent provider/model picker -->
+    <div v-if="showAiderConfig" class="cli-aider-config">
+      <div class="cli-aider-config-row">
+        <label>Proveedor</label>
+        <select v-model="aiderProvider" class="cli-aider-select" @change="onAiderProviderChange">
+          <option v-for="(info, key) in AI_PROVIDERS" :key="key" :value="key">{{ info.label }}</option>
+        </select>
+      </div>
+      <div class="cli-aider-config-row">
+        <label>Modelo</label>
+        <select v-model="aiderModel" class="cli-aider-select">
+          <option
+            v-for="m in (aiderProvider === 'openrouter' && aiderOpenrouterModels.length ? aiderOpenrouterModels : AI_PROVIDERS[aiderProvider].models)"
+            :key="m.id" :value="m.id"
+          >{{ m.label }}</option>
+        </select>
+      </div>
+      <div v-if="aiderProvider !== 'ollama'" class="cli-aider-config-row">
+        <label>{{ AI_PROVIDERS[aiderProvider].keyLabel }}</label>
+        <input v-model="aiderApiKey" type="password" class="cli-aider-input" :placeholder="AI_PROVIDERS[aiderProvider].keyPlaceholder" />
+      </div>
+      <p class="cli-aider-hint">Independiente del panel de Chat — cada CLI puede usar su propio modelo sin perder el contexto del proyecto actual.</p>
+      <button class="cli-install-btn" :style="{ background: meta.color }" @click="saveAiderConfig">Guardar {{ isRunning ? '(reinicia Aider)' : '' }}</button>
     </div>
 
     <!-- Tip bar -->
@@ -447,6 +500,20 @@ async function sendFileContext() {
   font-size: 9.5px; font-weight: 600; border-radius: 8px; padding: 1px 7px;
   border: 1px solid rgba(139,92,246,.4); background: rgba(139,92,246,.1); color: #a78bfa;
 }
+.cli-provider-badge--btn { cursor: pointer; font-family: var(--font-ui); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cli-provider-badge--btn:hover { background: rgba(139,92,246,.2); }
+
+.cli-aider-config {
+  background: #11161d; border-bottom: 1px solid rgba(139,92,246,.3);
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;
+}
+.cli-aider-config-row { display: flex; flex-direction: column; gap: 3px; }
+.cli-aider-config-row label { font-size: 10px; color: #8b949e; }
+.cli-aider-select, .cli-aider-input {
+  background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px;
+  color: #e6edf3; font-size: 11.5px; padding: 5px 8px; outline: none;
+}
+.cli-aider-hint { font-size: 10px; color: #6e7681; margin: 0; line-height: 1.4; }
 
 .cli-header-right { display: flex; gap: 4px; align-items: center; }
 .cli-hdr-btn {

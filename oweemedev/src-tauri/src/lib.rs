@@ -14,8 +14,11 @@
 //   linting        quick syntax linting via each language's own toolchain
 //   http_client     generic HTTP request panel
 //   lsp            Language Server Protocol bridge (IntelliSense)
+//   agent          local AI agent: project-confined fs/shell tools, Ollama
+//                  tool-calling chat and model install/pull
 
 mod util;
+mod agent;
 mod db;
 mod redis_db;
 mod pty;
@@ -28,6 +31,7 @@ mod linting;
 mod http_client;
 mod lsp;
 
+use agent::*;
 use db::*;
 use redis_db::*;
 use pty::*;
@@ -152,6 +156,7 @@ pub fn run() {
             git_config_set,
             container_runtime,
             container_list,
+            container_list_for_project,
             container_start,
             container_stop,
             container_restart,
@@ -172,6 +177,15 @@ pub fn run() {
             lsp_diagnostics,
             lsp_notify_open,
             lsp_stop,
+            agent_read_file,
+            agent_write_file,
+            agent_list_dir,
+            agent_create_dir,
+            agent_search,
+            agent_run_command,
+            ollama_check_installed,
+            ollama_pull_model,
+            agent_ollama_chat,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

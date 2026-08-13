@@ -51,6 +51,7 @@ import FtpView from './FtpView.vue'
 import RedisView from './RedisView.vue'
 import ApiRequestTab from './ApiRequestTab.vue'
 import CliPanel from './CliPanel.vue'
+import AgentTab from './AgentTab.vue'
 import GitDiffView from './GitDiffView.vue'
 import ErDiagramView from './ErDiagramView.vue'
 import ContainerLogsView from './ContainerLogsView.vue'
@@ -817,6 +818,14 @@ const openBrowserTabs = computed(() => store.state.tabs.filter(t => t.type === '
       v-show="store.activeTab()?.type === 'cli' && store.activeTab()?.cliTool === toolId"
       :cli="toolId"
       @open-file="store.openFile($event)"
+    />
+
+    <!-- OweemeIDE local agent (Ollama) — single persistent instance, same
+         v-show-only pattern as the CLI tabs so an in-progress task keeps
+         running while the user looks at other tabs. -->
+    <AgentTab
+      v-if="store.state.tabs.some(t => t.type === 'agent')"
+      v-show="store.activeTab()?.type === 'agent'"
     />
 
     <!-- Embedded browser / responsive preview — one persistent instance per

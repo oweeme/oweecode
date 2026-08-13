@@ -49,14 +49,7 @@ pub async fn container_runtime() -> Result<String, String> {
     detect_container_runtime().await
 }
 
-#[tauri::command]
-pub async fn container_list(all: bool) -> Result<Vec<ContainerInfo>, String> {
-    let runtime = detect_container_runtime().await?;
-    let mut args: Vec<&str> = vec!["ps"];
-    if all { args.push("-a"); }
-    args.push("--format");
-    args.push("{{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.CreatedAt}}");
-    let out = run_container_cmd(&runtime, &args).await?;
+fn parse_ps_output(out: &str) -> Vec<ContainerInfo> {
     let mut list = Vec::new();
     for line in out.lines() {
         if line.trim().is_empty() { continue; }
@@ -73,7 +66,40 @@ pub async fn container_list(all: bool) -> Result<Vec<ContainerInfo>, String> {
             created: parts[5].to_string(),
         });
     }
-    Ok(list)
+    list
+}
+
+const PS_FORMAT: &str = "{{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.CreatedAt}}";
+
+#[tauri::command]
+pub async fn container_list(all: bool) -> Result<Vec<ContainerInfo>, String> {
+    let runtime = detect_container_runtime().await?;
+    let mut args: Vec<&str> = vec!["ps"];
+    if all { args.push("-a"); }
+    args.push("--format");
+    args.push(PS_FORMAT);
+    let out = run_container_cmd(&runtime, &args).await?;
+    Ok(parse_ps_output(&out))
+}
+
+/// Same as `container_list` but scoped to containers the agent created for a
+/// given project — matched by the `oweeide.project` label `container_create`
+/// stamps on every container it makes when the caller passes a `label`
+/// (see `ContainerCreateOpts::label` / `build_run_args`). Lets the agent find
+/// "my project's containers" instead of trawling every container on the
+/// system, which today are otherwise indistinguishable from any other.
+#[tauri::command]
+pub async fn container_list_for_project(root: String, all: bool) -> Result<Vec<ContainerInfo>, String> {
+    let runtime = detect_container_runtime().await?;
+    let filter = format!("label=oweeide.project={}", root);
+    let mut args: Vec<&str> = vec!["ps"];
+    if all { args.push("-a"); }
+    args.push("--filter");
+    args.push(&filter);
+    args.push("--format");
+    args.push(PS_FORMAT);
+    let out = run_container_cmd(&runtime, &args).await?;
+    Ok(parse_ps_output(&out))
 }
 
 #[tauri::command]
@@ -205,6 +231,13 @@ pub struct ContainerCreateOpts {
     pub network: String,
     #[serde(default)]
     pub workdir: String,
+    /// Project root path, if this container belongs to one — stamped as the
+    /// `oweeide.project` label so `container_list_for_project` can find it
+    /// again later. Empty/omitted (the existing container creation form
+    /// never sets it) means no label, same behavior as before this field
+    /// existed.
+    #[serde(default)]
+    pub label: String,
 }
 
 #[derive(Serialize)]
@@ -245,6 +278,10 @@ fn build_run_args(opts: &ContainerCreateOpts) -> Vec<String> {
     if !opts.network.trim().is_empty() {
         args.push("--network".to_string());
         args.push(opts.network.trim().to_string());
+    }
+    if !opts.label.trim().is_empty() {
+        args.push("--label".to_string());
+        args.push(format!("oweeide.project={}", opts.label.trim()));
     }
     if !opts.workdir.trim().is_empty() {
         args.push("-w".to_string());
