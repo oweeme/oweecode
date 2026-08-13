@@ -66,13 +66,37 @@ Compatible con **MySQL, MariaDB, PostgreSQL y SQLite** sin instalar nada extra.
 - Comando `e <archivo>` para abrir archivos directamente en el editor desde la terminal
 - Soporte completo de colores ANSI
 
+### 🐳 Gestión de contenedores
+Compatible con **Podman** (preferido) y **Docker**, sin salir del IDE.
+- Crear, iniciar, detener, reiniciar y eliminar contenedores desde un formulario visual
+- Plantillas por lenguaje (Node, PHP, Python, Java, C#, Rust, Go) que montan el proyecto abierto automáticamente
+- Stack **Nginx + PHP-FPM** con un clic, generando la configuración de Nginx dentro del proyecto
+- Vincular una base de datos (MariaDB/PostgreSQL) a un contenedor de app en la misma red
+- Ver logs en vivo, editar la configuración de un contenedor existente
+- **Exportar** un contenedor a `.tar` (commit + save) para llevarlo a otra máquina
+- Filtro "solo este proyecto" para encontrar rápido los contenedores que le corresponden a la carpeta abierta
+
 ### 🤖 Asistente de IA
 Conecta con los mejores modelos de IA directamente desde el IDE:
 - **Claude** (Anthropic) — Sonnet, Opus, Haiku
 - **DeepSeek** — DeepSeek Coder, DeepSeek Chat
 - **Gemini** (Google) — 2.0 Flash, 1.5 Pro
 - **OpenAI** — GPT-4o, GPT-4 Turbo
-- **Ollama** — modelos locales sin internet
+- **Groq** — inferencia ultra rápida, capa gratis generosa
+- **OpenRouter** — catálogo de modelos gratis consultado en vivo
+- **Ollama** — modelos locales sin internet, y modelos cloud de Ollama (login opcional)
+- Contexto automático del archivo/selección activa en cada consulta
+- Memoria de proyecto compartida (`AGENTS.md`) — el resumen de cada conversación queda en el repo, así lo puede leer cualquier otra herramienta de IA (Claude Code, Aider, etc.)
+
+### ⬡ Agente de IA local (Ollama)
+Un agente con acceso real al proyecto, corriendo 100% en tu máquina — pensado para no depender de ninguna API paga ni mandar tu código a ningún servidor externo.
+- Pestaña propia en el área de trabajo (menú de IA ⚡ → "Agente (Ollama)")
+- Lee, busca y escribe archivos del proyecto; usa git (status, diff, stage, commit); ejecuta comandos de shell puntuales
+- Crea y gestiona contenedores Podman/Docker para el proyecto (ver sección de Contenedores) — etiquetados automáticamente para poder filtrarlos después
+- **Toda acción que modifique algo pide tu aprobación explícita antes de ejecutarse** — nunca escribe, borra ni corre nada sin confirmación
+- Confinado a la carpeta del proyecto abierto — no puede tocar archivos fuera de ahí
+- Instalación guiada de Ollama y descarga de modelos con progreso en vivo, incluidos los recomendados (`qwen2.5-coder` 3B y 7B) y cualquier otro modelo que tu hardware soporte — accesible desde la pestaña del Agente o desde **Preferencias**
+- Soporte para modelos cloud de Ollama (`ollama signin`) si preferís no bajar nada a disco
 
 ### ◆ Claude Code CLI (workspace)
 - Abre **Claude Code CLI** como tab en el área de trabajo (`Ctrl+Shift+C`)
@@ -84,6 +108,15 @@ Conecta con los mejores modelos de IA directamente desde el IDE:
 - Abre **Gemini CLI** como tab en el área de trabajo (`Ctrl+Shift+G`)
 - Autenticado con tu cuenta de Google
 - Misma experiencia que la terminal pero embebida en el IDE
+
+### ✦ Aider (workspace)
+- CLI de código abierto para pares de programación asistida por IA, embebido como tab
+- **Selector de proveedor y modelo propio**, independiente del panel de Chat — cada uno con su clave guardada por separado, así podés tener Chat y Aider usando modelos distintos a la vez
+- Funciona con cualquiera de los proveedores soportados, incluido Ollama en local
+
+### GitHub Copilot CLI (workspace)
+- Abre **Copilot CLI** como tab en el área de trabajo
+- Requiere una cuenta de GitHub con Copilot (hay plan gratuito limitado)
 
 ### 📡 Cliente FTP / SFTP
 - Conexiones FTP y SFTP guardadas
@@ -181,6 +214,16 @@ chmod +x OweemeIDE_*.AppImage
 4. Escribe tu consulta y presiona `Enter`
 
 **Tip:** Selecciona código en el editor antes de preguntar — el AI recibe el contexto automáticamente.
+
+### Usar el Agente de IA local (Ollama)
+
+1. Clic en el menú de IA (⚡) en la barra lateral → **"Agente (Ollama)"**
+2. Si es la primera vez, clic en el botón ⚙ del header (o en **Preferencias**) para instalar Ollama y bajar los modelos recomendados
+3. Elegí el modelo en el selector del header de la pestaña
+4. Escribí lo que necesitás — leer/escribir archivos, correr un comando, crear un contenedor, etc.
+5. Cuando el agente proponga una acción que modifica algo, vas a ver una tarjeta de confirmación — **Aprobar** o **Rechazar** antes de que se ejecute
+
+> Para tareas de varios pasos encadenados (por ejemplo, un contenedor de app vinculado a uno de base de datos), conviene pedirlas de a un paso por mensaje — los modelos locales chicos son más confiables así.
 
 ### Usar Claude Code CLI
 
