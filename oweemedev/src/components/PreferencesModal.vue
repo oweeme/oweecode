@@ -3,11 +3,19 @@ import { ref, computed } from 'vue'
 import { useI18n, type Locale } from '../composables/useI18n'
 import { useAppTheme } from '../composables/useAppTheme'
 import OllamaSetup from './OllamaSetup.vue'
+import PodmanSetup from './PodmanSetup.vue'
+import { useAppUpdater } from '../composables/useAppUpdater'
+import { getVersion } from '@tauri-apps/api/app'
 
 const emit = defineEmits<{ close: [] }>()
 const { t, setLocale, locale } = useI18n()
 const { theme, setTheme } = useAppTheme()
 const showOllamaSetup = ref(false)
+const showPodmanSetup = ref(false)
+
+const { state: updaterState, checkForUpdates } = useAppUpdater()
+const appVersion = ref('')
+getVersion().then(v => { appVersion.value = v }).catch(() => {})
 
 const LOCALES: { code: Locale; flag: string; label: string }[] = [
   { code: 'en', flag: '🇺🇸', label: 'English' },
@@ -242,6 +250,24 @@ function reset() {
         </p>
         <button class="pref-ollama-btn" @click="showOllamaSetup = true">⚙ Instalar Ollama / descargar modelos</button>
 
+        <!-- Podman (containers/pods) section -->
+        <div class="pref-section-label" style="margin-top:18px">CONTENEDORES Y PODS</div>
+        <p class="lsp-note">
+          Crear contenedores y pods necesita <strong>Podman</strong> instalado en tu máquina — tampoco viene incluido en la app.
+        </p>
+        <button class="pref-ollama-btn" @click="showPodmanSetup = true">⚙ {{ t('installPodmanTitle') }}</button>
+
+        <!-- App updates -->
+        <div class="pref-section-label" style="margin-top:18px">{{ t('updatesSectionLabel') }}</div>
+        <p class="lsp-note">{{ t('currentVersionLabel') }} {{ appVersion || '…' }}</p>
+        <div v-if="updaterState.available" class="lsp-note" style="color:var(--accent)">
+          ✓ {{ t('updateAvailable') }} v{{ updaterState.version }}
+        </div>
+        <div v-else-if="updaterState.error" class="lsp-note" style="color:#f85149">{{ updaterState.error }}</div>
+        <button class="pref-ollama-btn" :disabled="updaterState.checking" @click="checkForUpdates">
+          {{ updaterState.checking ? t('checkingUpdates') : t('checkForUpdates') }}
+        </button>
+
         <!-- Preview box -->
         <div class="pref-section-label" style="margin-top:18px">{{ t('prefsSectionPreview') }}</div>
         <div
@@ -261,6 +287,7 @@ function reset() {
     </div>
 
     <OllamaSetup v-if="showOllamaSetup" @close="showOllamaSetup = false" />
+    <PodmanSetup v-if="showPodmanSetup" @close="showPodmanSetup = false" />
   </div>
 </template>
 

@@ -55,6 +55,7 @@ import AgentTab from './AgentTab.vue'
 import GitDiffView from './GitDiffView.vue'
 import ErDiagramView from './ErDiagramView.vue'
 import ContainerLogsView from './ContainerLogsView.vue'
+import ContainerShellView from './ContainerShellView.vue'
 import BrowserView from './BrowserView.vue'
 import DesignView from './DesignView.vue'
 
@@ -625,6 +626,13 @@ const openCliTools = computed(() =>
   [...new Set(store.state.tabs.filter(t => t.type === 'cli').map(t => t.cliTool!))]
 )
 
+// Same reasoning as openCliTools — an interactive container shell is a live
+// PTY session (cwd, running processes), so switching tabs away and back must
+// not tear it down and reconnect from scratch.
+const openContainerShells = computed(() =>
+  store.state.tabs.filter(t => t.type === 'container-shell').map(t => ({ id: t.containerId!, name: t.containerName! }))
+)
+
 // Every open browser tab, kept mounted the same way (see BrowserView below).
 const openBrowserTabs = computed(() => store.state.tabs.filter(t => t.type === 'browser'))
 
@@ -794,6 +802,7 @@ const openBrowserTabs = computed(() => store.state.tabs.filter(t => t.type === '
       :container-name="store.activeTab()!.containerName!"
     />
 
+
     <!-- Visual design / page builder -->
     <DesignView
       v-else-if="store.activeTab()?.type === 'design'"
@@ -818,6 +827,16 @@ const openBrowserTabs = computed(() => store.state.tabs.filter(t => t.type === '
       v-show="store.activeTab()?.type === 'cli' && store.activeTab()?.cliTool === toolId"
       :cli="toolId"
       @open-file="store.openFile($event)"
+    />
+
+    <!-- Container interactive shells — one persistent instance per open
+         container, same v-show-only pattern as the CLI tabs. -->
+    <ContainerShellView
+      v-for="cs in openContainerShells"
+      :key="`container-shell-${cs.id}`"
+      v-show="store.activeTab()?.type === 'container-shell' && store.activeTab()?.containerId === cs.id"
+      :container-id="cs.id"
+      :container-name="cs.name"
     />
 
     <!-- OweemeIDE local agent (Ollama) — single persistent instance, same

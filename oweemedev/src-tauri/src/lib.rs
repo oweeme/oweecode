@@ -72,6 +72,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             open_file,
             save_file,
@@ -155,12 +157,14 @@ pub fn run() {
             git_config_get,
             git_config_set,
             container_runtime,
+            podman_check_installed,
             container_list,
             container_list_for_project,
             container_start,
             container_stop,
             container_restart,
             container_remove,
+            container_prune,
             container_export,
             container_logs,
             container_create,
@@ -169,6 +173,15 @@ pub fn run() {
             image_list,
             image_pull,
             network_ensure,
+            pod_list,
+            pod_list_for_project,
+            pod_create,
+            pod_start,
+            pod_stop,
+            pod_remove,
+            pod_prune,
+            pod_export,
+            pod_import,
             lint_file,
             http_request,
             lsp_start,

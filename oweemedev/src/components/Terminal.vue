@@ -10,12 +10,19 @@ import '@xterm/xterm/css/xterm.css'
 const props = defineProps<{
   cwd: string
   command?: string   // optional: run this CLI instead of bash (e.g. 'claude', 'gemini')
+  args?: string[]    // extra argv for `command` (e.g. ['exec', '-it', containerId, 'sh'])
+  // Typed into the session once it's sitting at its first prompt (same delay
+  // trick as the alias injection below) — unlike an inherited env var, this
+  // can't be clobbered by the target shell's own .bashrc/.profile, since it
+  // runs strictly after those already have.
+  postConnectCmd?: string
 }>()
 const emit = defineEmits<{ 'open-file': [path: string] }>()
 
 const termEl = ref<HTMLElement | null>(null)
 let xterm: XTerm | null = null
 let fitAddon: FitAddon | null = null
+let resizeObserver: ResizeObserver | null = null
 
 // Unique session ID per terminal instance
 const sessionId = `term-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -98,7 +105,7 @@ onMounted(async () => {
   await startPty()
 
   // Resize: fit xterm and send new dimensions to PTY
-  const ro = new ResizeObserver(() => {
+  resizeObserver = new ResizeObserver(() => {
     setTimeout(async () => {
       fitAddon?.fit()
       const raw = fitAddon?.proposeDimensions()
@@ -107,11 +114,11 @@ onMounted(async () => {
       await invoke('pty_resize', { id: sessionId, cols, rows }).catch(() => {})
     }, 30)
   })
-  if (termEl.value) ro.observe(termEl.value)
-  onBeforeUnmount(() => ro.disconnect())
+  if (termEl.value) resizeObserver.observe(termEl.value)
 })
 
 onBeforeUnmount(async () => {
+  resizeObserver?.disconnect()
   unlistenData?.()
   unlistenExit?.()
   await invoke('pty_kill', { id: sessionId }).catch(() => {})
@@ -139,6 +146,7 @@ async function startPty() {
       cols,
       rows,
       command: props.command ?? null,
+      extraArgs: props.args ?? null,
     })
 
     // Only inject aliases for plain bash sessions
@@ -156,6 +164,12 @@ async function startPty() {
           'alias vi=e',
         ].join('\n')
         invoke('pty_write', { id: sessionId, data: init + '\n' }).catch(() => {})
+      }, 600)
+    }
+
+    if (props.postConnectCmd) {
+      setTimeout(() => {
+        invoke('pty_write', { id: sessionId, data: props.postConnectCmd + '\n' }).catch(() => {})
       }, 600)
     }
 

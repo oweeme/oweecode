@@ -16,6 +16,7 @@ import TitleBar from './components/TitleBar.vue'
 import PreferencesModal from './components/PreferencesModal.vue'
 import ShortcutsModal from './components/ShortcutsModal.vue'
 import GlobalContextMenu from './components/GlobalContextMenu.vue'
+import UpdateBanner from './components/UpdateBanner.vue'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { getVersion } from '@tauri-apps/api/app'
 import { useEditorStore } from './composables/useEditorStore'
@@ -697,6 +698,7 @@ function onDbOpenTable(connId: string, tableName: string, connName: string, driv
   </Teleport>
 
   <StatusBar />
+  <UpdateBanner />
 </template>
 
 <style>

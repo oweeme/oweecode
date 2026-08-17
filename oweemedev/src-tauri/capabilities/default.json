@@ -18,6 +18,8 @@
     "shell:allow-kill",
     "shell:allow-stdin-write",
     "shell:allow-execute",
+    "updater:default",
+    "process:allow-restart",
     {
       "identifier": "shell:allow-spawn",
       "allow": [

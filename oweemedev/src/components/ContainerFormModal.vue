@@ -17,8 +17,10 @@ interface ContainerOpts {
   restart_policy: string
   network: string
   workdir: string
+  pod?: string
 }
 interface ImageInfo { id: string; repository: string; tag: string; size: string }
+interface PodOption { id: string; name: string }
 
 const props = defineProps<{ mode: 'create' | 'edit'; containerId?: string; initial?: ContainerOpts }>()
 const emit = defineEmits<{ close: []; saved: [id: string] }>()
@@ -27,7 +29,7 @@ const editorStore = useEditorStore()
 const projectPath = computed(() => editorStore.state.rootPath)
 
 function blankForm(): ContainerOpts {
-  return { name: '', image: '', ports: [], volumes: [], env: [], command: '', restart_policy: '', network: '', workdir: '' }
+  return { name: '', image: '', ports: [], volumes: [], env: [], command: '', restart_policy: '', network: '', workdir: '', pod: '' }
 }
 
 const form = reactive<ContainerOpts>(props.initial ? { ...props.initial, ports: [...props.initial.ports], volumes: [...props.initial.volumes], env: [...props.initial.env] } : blankForm())
@@ -201,9 +203,16 @@ const pulling = ref(false)
 const pullError = ref('')
 const saving = ref(false)
 const saveError = ref('')
+const pods = ref<PodOption[]>([])
 
 async function loadImages() {
   try { images.value = await invoke<ImageInfo[]>('image_list') } catch { /* ignore, form still usable */ }
+}
+
+// pod_list quietly returns [] under Docker, so this is safe to call
+// unconditionally — the select simply stays hidden when there are none.
+async function loadPods() {
+  try { pods.value = await invoke<PodOption[]>('pod_list') } catch { pods.value = [] }
 }
 
 async function pullImage() {
@@ -271,6 +280,9 @@ async function submit() {
       volumes: form.volumes.filter(v => v.host && v.container),
       env: [...form.env.filter(e => e.key), ...extraEnv],
       network: networkName,
+      // A pod already provides the shared network namespace — joining one
+      // together with an auto-generated link-db/stack network doesn't apply.
+      pod: (linkDb.value || stackMode.value === 'nginx-php-fpm') ? '' : (form.pod || ''),
     }
     const id = props.mode === 'edit' && props.containerId
       ? await invoke<string>('container_update', { id: props.containerId, opts })
@@ -297,7 +309,7 @@ async function submit() {
   finally { saving.value = false }
 }
 
-onMounted(loadImages)
+onMounted(() => { loadImages(); loadPods() })
 </script>
 
 <template>
@@ -445,8 +457,17 @@ onMounted(loadImages)
           </div>
           <div class="cf-field" style="flex:1">
             <label>{{ t('networkOptional') }}</label>
-            <input v-model="form.network" class="cf-input" placeholder="bridge" :disabled="linkDb" />
+            <input v-model="form.network" class="cf-input" placeholder="bridge" :disabled="linkDb || !!form.pod" />
           </div>
+        </div>
+
+        <div v-if="pods.length > 0" class="cf-field">
+          <label>{{ t('podOptionalLabel') }}</label>
+          <select v-model="form.pod" class="cf-input" :disabled="linkDb">
+            <option value="">{{ t('podNoneOption') }}</option>
+            <option v-for="p in pods" :key="p.id" :value="p.name">{{ p.name }}</option>
+          </select>
+          <div v-if="form.pod" class="cf-hint">{{ t('podJoinHint') }}</div>
         </div>
 
         <div v-if="mode === 'create'" class="cf-section cf-linkdb">

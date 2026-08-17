@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 
-export type TabType = 'code' | 'image' | 'database' | 'ftp' | 'api' | 'ftp-file' | 'cli' | 'redis' | 'git-diff' | 'er-diagram' | 'container-logs' | 'browser' | 'design' | 'agent'
+export type TabType = 'code' | 'image' | 'database' | 'ftp' | 'api' | 'ftp-file' | 'cli' | 'redis' | 'git-diff' | 'er-diagram' | 'container-logs' | 'container-shell' | 'browser' | 'design' | 'agent'
 
 export interface Tab {
   path: string
@@ -206,6 +206,17 @@ export function useEditorStore() {
     state.activeTabPath = path
   }
 
+  function openContainerShell(containerId: string, containerName: string) {
+    const path = `container-shell://${containerId}`
+    const existing = state.tabs.find(t => t.path === path)
+    if (existing) { state.activeTabPath = path; return }
+    state.tabs.push({
+      path, name: `${containerName} (shell)`, content: '', modified: false, language: 'text',
+      type: 'container-shell', containerId, containerName,
+    })
+    state.activeTabPath = path
+  }
+
   function openGitDiff(filePath: string, staged: boolean) {
     const path = `git-diff://${staged ? 'staged' : 'unstaged'}/${filePath}`
     const existing = state.tabs.find(t => t.path === path)
@@ -327,5 +338,5 @@ export function useEditorStore() {
     toClose.forEach(t => closeTab(t.path))
   }
 
-  return { state, activeTab, setRootPath, openFile, saveFile, saveActiveFile, updateContent, closeTab, closeTabByPath, renameTab, setActive, setCursor, setSelectedText, openDbTable, openNewTable, tabTableCreated, openFtpConn, openFtpFile, openApiRequest, openCliTab, openAgentTab, openRedisConn, openGitDiff, openErDiagram, openContainerLogs, openBrowserTab, openDesignTab }
+  return { state, activeTab, setRootPath, openFile, saveFile, saveActiveFile, updateContent, closeTab, closeTabByPath, renameTab, setActive, setCursor, setSelectedText, openDbTable, openNewTable, tabTableCreated, openFtpConn, openFtpFile, openApiRequest, openCliTab, openAgentTab, openRedisConn, openGitDiff, openErDiagram, openContainerLogs, openContainerShell, openBrowserTab, openDesignTab }
 }
