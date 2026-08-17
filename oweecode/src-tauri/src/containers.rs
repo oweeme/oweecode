@@ -128,7 +128,7 @@ pub async fn container_list(all: bool) -> Result<Vec<ContainerInfo>, String> {
 }
 
 /// Same as `container_list` but scoped to containers the agent created for a
-/// given project — matched by the `oweeide.project` label `container_create`
+/// given project — matched by the `oweecode.project` label `container_create`
 /// stamps on every container it makes when the caller passes a `label`
 /// (see `ContainerCreateOpts::label` / `build_run_args`). Lets the agent find
 /// "my project's containers" instead of trawling every container on the
@@ -136,7 +136,7 @@ pub async fn container_list(all: bool) -> Result<Vec<ContainerInfo>, String> {
 #[tauri::command]
 pub async fn container_list_for_project(root: String, all: bool) -> Result<Vec<ContainerInfo>, String> {
     let runtime = detect_container_runtime().await?;
-    let filter = format!("label=oweeide.project={}", root);
+    let filter = format!("label=oweecode.project={}", root);
     let mut args: Vec<&str> = vec!["ps"];
     if all { args.push("-a"); }
     args.push("--filter");
@@ -185,7 +185,7 @@ pub async fn container_prune(label: Option<String>) -> Result<(), String> {
     if let Some(l) = label {
         if !l.trim().is_empty() {
             args.push("--filter".to_string());
-            args.push(format!("label=oweeide.project={}", l.trim()));
+            args.push(format!("label=oweecode.project={}", l.trim()));
         }
     }
     let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
@@ -199,7 +199,7 @@ pub async fn container_prune(label: Option<String>) -> Result<(), String> {
 pub async fn container_export(id: String, name: String, out_path: String) -> Result<(), String> {
     let runtime = detect_container_runtime().await?;
     let tag = format!(
-        "oweeide-export/{}:latest",
+        "oweecode-export/{}:latest",
         name.to_lowercase().chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '-' }).collect::<String>()
     );
     run_container_cmd(&runtime, &["commit", &id, &tag]).await?;
@@ -337,7 +337,7 @@ pub async fn pod_list() -> Result<Vec<PodInfo>, String> {
 pub async fn pod_list_for_project(root: String) -> Result<Vec<PodInfo>, String> {
     let runtime = detect_container_runtime().await?;
     if runtime != "podman" { return Ok(Vec::new()); }
-    let filter = format!("label=oweeide.project={}", root);
+    let filter = format!("label=oweecode.project={}", root);
     let out = run_container_cmd(&runtime, &["pod", "ps", "--filter", &filter, "--format", "json"]).await?;
     parse_pod_ps_json(&out)
 }
@@ -358,7 +358,7 @@ pub async fn pod_create(name: String, ports: Vec<PortMapping>, label: String) ->
     }
     if !label.trim().is_empty() {
         args.push("--label".to_string());
-        args.push(format!("oweeide.project={}", label.trim()));
+        args.push(format!("oweecode.project={}", label.trim()));
     }
     let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     let out = run_container_cmd(&runtime, &args_ref).await?;
@@ -414,7 +414,7 @@ pub struct ContainerCreateOpts {
     #[serde(default)]
     pub workdir: String,
     /// Project root path, if this container belongs to one — stamped as the
-    /// `oweeide.project` label so `container_list_for_project` can find it
+    /// `oweecode.project` label so `container_list_for_project` can find it
     /// again later. Empty/omitted (the existing container creation form
     /// never sets it) means no label, same behavior as before this field
     /// existed.
@@ -473,7 +473,7 @@ fn build_run_args(opts: &ContainerCreateOpts) -> Vec<String> {
     }
     if !opts.label.trim().is_empty() {
         args.push("--label".to_string());
-        args.push(format!("oweeide.project={}", opts.label.trim()));
+        args.push(format!("oweecode.project={}", opts.label.trim()));
     }
     if !opts.pod.trim().is_empty() {
         args.push("--pod".to_string());
@@ -667,7 +667,7 @@ pub async fn pod_export(
         let detail = container_inspect(cid.clone()).await?;
 
         let (tar_file, image) = if full {
-            let tag = format!("oweeide-export/{}:latest", safe_tag_name(&detail.name));
+            let tag = format!("oweecode-export/{}:latest", safe_tag_name(&detail.name));
             run_container_cmd(&runtime, &["commit", cid, &tag]).await?;
             let tar_file = format!("{}.tar", safe_tag_name(&detail.name));
             let tar_path = out_dir_path.join(&tar_file);

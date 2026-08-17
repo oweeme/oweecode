@@ -558,7 +558,7 @@ pub async fn db_export(id: String, driver: String, tables: Option<Vec<String>>, 
         _ => list_tables_pool(&pool).await?,
     };
     let mut out = String::new();
-    out.push_str(&format!("-- OweemeIDE SQL export ({})\n-- {}\n\n", driver, chrono::Utc::now().to_rfc3339()));
+    out.push_str(&format!("-- OweeCode SQL export ({})\n-- {}\n\n", driver, chrono::Utc::now().to_rfc3339()));
     for t in &table_list {
         out.push_str(&format!("-- Table: {}\n", t));
         out.push_str(&export_table_schema(&pool, &driver, &t).await?);

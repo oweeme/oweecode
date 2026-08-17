@@ -1,17 +1,17 @@
 
 # Node
-oweemedev/node_modules/
-oweemedev/dist/
-oweemedev/.vite/
+oweecode/node_modules/
+oweecode/dist/
+oweecode/.vite/
 # Archivos
 docs
 
 # Rust / Cargo
-oweemedev/src-tauri/target/
-oweemedev/src-tauri/Cargo.lock
+oweecode/src-tauri/target/
+oweecode/src-tauri/Cargo.lock
 
 # Tauri generados
-oweemedev/src-tauri/gen/
+oweecode/src-tauri/gen/
 
 # OS
 .DS_Store

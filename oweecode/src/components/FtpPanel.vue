@@ -157,7 +157,7 @@ async function importFileZilla() {
 
 // ── Export all sites as a FileZilla sitemanager.xml — FileZilla can import it
 // directly, and it's the same format importFileZilla() above already reads,
-// so it doubles as the way to move connections to another OweemeIDE install ──
+// so it doubles as the way to move connections to another OweeCode install ──
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
@@ -166,7 +166,7 @@ async function exportFileZilla() {
   errorMsg.value = ''
   if (connections.value.length === 0) { errorMsg.value = t('noConnectionsToExport'); return }
   const path = await saveDialog({
-    defaultPath: 'oweeide-ftp-sites.xml',
+    defaultPath: 'oweecode-ftp-sites.xml',
     filters: [{ name: 'FileZilla Sites', extensions: ['xml'] }],
   })
   if (!path) return

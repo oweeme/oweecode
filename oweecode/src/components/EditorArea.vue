@@ -654,7 +654,7 @@ const openBrowserTabs = computed(() => store.state.tabs.filter(t => t.type === '
         <div class="welcome-logo">
           <img src="/oweedev.png" width="96" height="96" style="border-radius:20px;display:block;" />
         </div>
-        <h1 class="welcome-title">OweemeIDE</h1>
+        <h1 class="welcome-title">OweeCode</h1>
         <p class="welcome-sub">{{ t('welcomeSub') }}</p>
 
         <div class="welcome-langs">
@@ -839,7 +839,7 @@ const openBrowserTabs = computed(() => store.state.tabs.filter(t => t.type === '
       :container-name="cs.name"
     />
 
-    <!-- OweemeIDE local agent (Ollama) — single persistent instance, same
+    <!-- OweeCode local agent (Ollama) — single persistent instance, same
          v-show-only pattern as the CLI tabs so an in-progress task keeps
          running while the user looks at other tabs. -->
     <AgentTab

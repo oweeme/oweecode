@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OweemeIDE",
+  "productName": "OweeCode",
   "version": "1.4.0",
-  "identifier": "com.oweeme.oweemedev",
+  "identifier": "com.oweeme.oweecode",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "OweemeIDE",
+        "title": "OweeCode",
         "width": 1280,
         "height": 800,
         "minWidth": 800,
@@ -39,17 +39,17 @@
     "publisher": "Héctor Martínez — oweeme.com",
     "copyright": "© 2025 Héctor Martínez / oweeme.com. Todos los derechos reservados.",
     "category": "DeveloperTool",
-    "shortDescription": "OweemeIDE — El IDE para el desarrollador moderno",
-    "longDescription": "OweemeIDE es un entorno de desarrollo integrado creado por Héctor Martínez (hector@oweeme.com — oweeme.com) pensado para las necesidades reales del desarrollador. Incluye editor de código con resaltado de sintaxis, terminal integrada, explorador de archivos, cliente de bases de datos (MySQL/MariaDB/PostgreSQL/SQLite) y asistente de IA. Desarrollado con Tauri 2, Vue 3 y Rust. Para soporte y actualizaciones futuras visita oweeme.com o escribe a hector@oweeme.com.",
+    "shortDescription": "OweeCode — El IDE para el desarrollador moderno",
+    "longDescription": "OweeCode es un entorno de desarrollo integrado creado por Héctor Martínez (hector@oweeme.com — oweeme.com) pensado para las necesidades reales del desarrollador. Incluye editor de código con resaltado de sintaxis, terminal integrada, explorador de archivos, cliente de bases de datos (MySQL/MariaDB/PostgreSQL/SQLite) y asistente de IA. Desarrollado con Tauri 2, Vue 3 y Rust. Para soporte y actualizaciones futuras visita oweeme.com o escribe a hector@oweeme.com.",
     "linux": {
       "deb": {
         "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libayatana-appindicator3-1"],
         "desktopTemplate": null,
         "files": {
-          "/usr/share/pixmaps/oweeme-ide.png": "icons/128x128.png",
-          "/usr/share/icons/hicolor/128x128/apps/oweeme-ide.png": "icons/128x128.png",
-          "/usr/share/icons/hicolor/256x256/apps/oweeme-ide.png": "icons/128x128@2x.png",
-          "/usr/share/icons/hicolor/32x32/apps/oweeme-ide.png": "icons/32x32.png"
+          "/usr/share/pixmaps/oweecode.png": "icons/128x128.png",
+          "/usr/share/icons/hicolor/128x128/apps/oweecode.png": "icons/128x128.png",
+          "/usr/share/icons/hicolor/256x256/apps/oweecode.png": "icons/128x128@2x.png",
+          "/usr/share/icons/hicolor/32x32/apps/oweecode.png": "icons/32x32.png"
         }
       },
       "appimage": {
@@ -77,9 +77,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgwRkI4OUZEMUMyODYzNjgKUldSb1l5Z2MvWW43Z056bllPT0xjYy9xM1lhT0E0TEtEN1FmOUd1WFpmSVAxbmdBcWNXQ3l4WHQK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQxNDZDNEYyQ0IwQzMyOUUKUldTZU1nekw4c1JHMFhKNkpTM25RSk85QVhDSTM3ci9KVURNTFdVUjNKTUQyNjRiZjE1RWc2MkoK",
       "endpoints": [
-        "https://github.com/oweeme/oweeide/releases/latest/download/latest.json"
+        "https://github.com/oweeme/oweecode/releases/latest/download/latest.json"
       ]
     }
   }

@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: oweemedev/package-lock.json
+          cache-dependency-path: oweecode/package-lock.json
 
       - name: Setup Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -41,7 +41,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: oweemedev/src-tauri -> target
+          workspaces: oweecode/src-tauri -> target
 
       - name: Install Linux system dependencies
         if: matrix.os == 'ubuntu-22.04'
@@ -59,7 +59,7 @@ jobs:
             libfuse2
 
       - name: Install frontend dependencies
-        working-directory: oweemedev
+        working-directory: oweecode
         run: npm ci
 
       - name: Build and release
@@ -69,11 +69,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          projectPath: oweemedev
+          projectPath: oweecode
           tagName: ${{ github.ref_name }}
-          releaseName: OweemeIDE ${{ github.ref_name }}
+          releaseName: OweeCode ${{ github.ref_name }}
           releaseBody: |
-            ## OweemeIDE ${{ github.ref_name }}
+            ## OweeCode ${{ github.ref_name }}
 
             IDE de escritorio construido con Tauri 2 + Vue 3 + Rust.
             Desarrollado por Héctor Martínez — hector@oweeme.com — oweeme.com
@@ -86,14 +86,14 @@ jobs:
             ### Instalación rápida
             **Linux (deb):**
             ```bash
-            sudo dpkg -i OweemeIDE_*.deb
+            sudo dpkg -i OweeCode_*.deb
             ```
             **Linux (AppImage):**
             ```bash
-            chmod +x OweemeIDE_*.AppImage && ./OweemeIDE_*.AppImage
+            chmod +x OweeCode_*.AppImage && ./OweeCode_*.AppImage
             ```
             **Windows:** Ejecutar el `.exe` o `.msi` como administrador.
-            **macOS:** Abrir el `.dmg` y arrastrar OweemeIDE a Aplicaciones.
+            **macOS:** Abrir el `.dmg` y arrastrar OweeCode a Aplicaciones.
           releaseDraft: true
           prerelease: false
           args: --bundles ${{ matrix.bundles }}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// OweemeIDE's local coding agent — a workspace tab (like Claude Code/Aider)
+// OweeCode's local coding agent — a workspace tab (like Claude Code/Aider)
 // instead of a sidebar panel, so it behaves the same way as those: keeps
 // working in the background while the user looks at other tabs, and they
 // switch back to check progress instead of it competing for space with chat.
@@ -86,7 +86,7 @@ onMounted(async () => {
     <div ref="messagesEl" class="agent-messages">
       <div v-if="agent.state.steps.length === 0" class="agent-empty">
         <img src="/oweedev.png" width="40" height="40" style="border-radius:10px;opacity:.7;margin-bottom:4px" />
-        <p class="agent-empty-title">Agente de OweemeIDE</p>
+        <p class="agent-empty-title">Agente de OweeCode</p>
         <p class="agent-empty-sub">⬡ Ollama · {{ model }}</p>
         <p class="agent-empty-desc">
           Lee y escribe archivos, corre comandos y usa git en este proyecto. Toda acción que modifique algo pide tu aprobación primero.

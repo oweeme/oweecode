@@ -277,7 +277,7 @@ function reset() {
             fontSize: fontSize + 'px',
             lineHeight: lineHeight,
           }"
-        >fn main() {<br>&nbsp;&nbsp;println!("Hello, OweemeIDE!");<br>}</div>
+        >fn main() {<br>&nbsp;&nbsp;println!("Hello, OweeCode!");<br>}</div>
       </div>
 
       <div class="pref-footer">

@@ -155,7 +155,7 @@ function parseFallbackToolCall(content: string): { id: string; name: string; arg
 
 function buildSystemPrompt(agentsContext: string): string {
   const toolList = AGENT_TOOLS.map(t => `- ${t.name}: ${t.description}`).join('\n')
-  return `Sos un agente de programación integrado en OweemeIDE, con acceso real de lectura/escritura al proyecto que el usuario tiene abierto — no es una simulación, cada tool call se ejecuta de verdad.
+  return `Sos un agente de programación integrado en OweeCode, con acceso real de lectura/escritura al proyecto que el usuario tiene abierto — no es una simulación, cada tool call se ejecuta de verdad.
 Tenés estas herramientas disponibles:
 ${toolList}
 Reglas importantes:

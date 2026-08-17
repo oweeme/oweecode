@@ -79,7 +79,7 @@ function buildContext(includeSelection: boolean): string {
 }
 
 function getSystemPrompt(): string {
-  return `You are an expert programming assistant integrated into OweemeIDE, a modern IDE built with Tauri and Vue 3.
+  return `You are an expert programming assistant integrated into OweeCode, a modern IDE built with Tauri and Vue 3.
 You help with: PHP, Go, Vue, JavaScript, TypeScript, React/JSX, Svelte, Astro, Python, Rust, SQL, HTML, CSS, and more.
 When providing code fixes or improvements, always use code blocks with the correct language tag.
 Be concise and practical. Respond in the same language the user writes in (Spanish or English).`
@@ -373,7 +373,7 @@ function onKeydown(e: KeyboardEvent) {
         <!-- Empty state with quick actions -->
         <div v-if="messages.length === 0" class="ai-empty">
           <img src="/oweedev.png" width="40" height="40" style="border-radius:10px;opacity:.7;margin-bottom:4px" />
-          <p class="ai-empty-title">OweemeIDE AI Assistant</p>
+          <p class="ai-empty-title">OweeCode AI Assistant</p>
           <p class="ai-empty-sub">{{ currentProvider.icon }} {{ currentProvider.label }} · {{ model }}</p>
 
           <div v-if="hasFile" class="ai-quick-actions">

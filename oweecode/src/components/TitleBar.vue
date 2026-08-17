@@ -14,7 +14,7 @@ function close() { appWindow.close() }
   <div class="titlebar" data-tauri-drag-region>
     <div class="titlebar-logo" data-tauri-drag-region>
       <img src="/oweedev.png" width="18" height="18" style="border-radius:4px;display:block;" />
-      <span class="titlebar-name">OweemeIDE</span>
+      <span class="titlebar-name">OweeCode</span>
     </div>
     <div class="titlebar-spacer" data-tauri-drag-region />
     <div class="titlebar-controls">

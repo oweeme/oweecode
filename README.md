@@ -1,15 +1,15 @@
 <div align="center">
 
-<img src="oweemedev/src-tauri/icons/128x128.png" width="96" height="96" style="border-radius: 20px;" />
+<img src="oweecode/src-tauri/icons/128x128.png" width="96" height="96" style="border-radius: 20px;" />
 
-# OweemeIDE
+# OweeCode
 
 **El IDE moderno para el desarrollador que quiere todo en un solo lugar**
 
 *Ligero · Rápido · Construido con Rust*
 
-[![Versión](https://img.shields.io/github/v/release/oweeme/oweeide?label=versión&color=2e9e87)](https://github.com/oweeme/oweeide/releases/latest)
-[![Plataforma](https://img.shields.io/badge/plataforma-Linux%20%7C%20Windows%20%7C%20macOS-blue)](https://github.com/oweeme/oweeide/releases/latest)
+[![Versión](https://img.shields.io/github/v/release/oweeme/oweecode?label=versión&color=2e9e87)](https://github.com/oweeme/oweecode/releases/latest)
+[![Plataforma](https://img.shields.io/badge/plataforma-Linux%20%7C%20Windows%20%7C%20macOS-blue)](https://github.com/oweeme/oweecode/releases/latest)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
 
 [⬇️ Descargar](#instalación) · [✨ Características](#características) · [📖 Manual de uso](#manual-de-uso) · [🌐 oweeme.com](https://oweeme.com)
@@ -18,11 +18,11 @@
 
 ---
 
-## ¿Qué es OweemeIDE?
+## ¿Qué es OweeCode?
 
-OweemeIDE es un entorno de desarrollo integrado (IDE) de escritorio creado por **Héctor Martínez** ([oweeme.com](https://oweeme.com)), pensado para las necesidades reales del desarrollador moderno. Construido con **Tauri 2**, **Vue 3** y **Rust**, combina la velocidad nativa de las aplicaciones de escritorio con la flexibilidad del ecosistema web.
+OweeCode es un entorno de desarrollo integrado (IDE) de escritorio creado por **Héctor Martínez** ([oweeme.com](https://oweeme.com)), pensado para las necesidades reales del desarrollador moderno. Construido con **Tauri 2**, **Vue 3** y **Rust**, combina la velocidad nativa de las aplicaciones de escritorio con la flexibilidad del ecosistema web.
 
-A diferencia de editores pesados que consumen gigabytes de RAM, OweemeIDE es **ligero, rápido y tiene todo lo que necesitas** sin plugins adicionales: editor, terminal, base de datos, FTP, cliente API y asistente de IA — todo integrado.
+A diferencia de editores pesados que consumen gigabytes de RAM, OweeCode es **ligero, rápido y tiene todo lo que necesitas** sin plugins adicionales: editor, terminal, base de datos, FTP, cliente API y asistente de IA — todo integrado.
 
 ---
 
@@ -100,7 +100,7 @@ Un agente con acceso real al proyecto, corriendo 100% en tu máquina — pensado
 
 ### ◆ Claude Code CLI (workspace)
 - Abre **Claude Code CLI** como tab en el área de trabajo (`Ctrl+Shift+C`)
-- Igual que la extensión de VS Code pero en OweemeIDE
+- Igual que la extensión de VS Code pero en OweeCode
 - Botón "Enviar archivo" — pasa el contexto del archivo activo al CLI
 - Usa tu suscripción Claude Pro sin API key adicional
 
@@ -136,32 +136,32 @@ Un agente con acceso real al proyecto, corriendo 100% en tu máquina — pensado
 
 ### ⬇️ Descargar el instalador
 
-Ve a la página de [Releases](https://github.com/oweeme/oweeide/releases/latest) y descarga el instalador para tu sistema:
+Ve a la página de [Releases](https://github.com/oweeme/oweecode/releases/latest) y descarga el instalador para tu sistema:
 
 | Sistema | Archivo |
 |---------|---------|
-| 🐧 Linux (Debian/Ubuntu/Neon/Mint) | `OweemeIDE_x.x.x_amd64.deb` |
-| 🐧 Linux (cualquier distro) | `OweemeIDE_x.x.x_amd64.AppImage` |
-| 🪟 Windows | `OweemeIDE_x.x.x_x64-setup.exe` |
-| 🍎 macOS | `OweemeIDE_x.x.x_x64.dmg` |
+| 🐧 Linux (Debian/Ubuntu/Neon/Mint) | `OweeCode_x.x.x_amd64.deb` |
+| 🐧 Linux (cualquier distro) | `OweeCode_x.x.x_amd64.AppImage` |
+| 🪟 Windows | `OweeCode_x.x.x_x64-setup.exe` |
+| 🍎 macOS | `OweeCode_x.x.x_x64.dmg` |
 
 ### 🐧 Linux — instalación con .deb (recomendado)
 
 ```bash
 # Instalar
-sudo dpkg -i OweemeIDE_*.deb
+sudo dpkg -i OweeCode_*.deb
 
 # Si falta alguna dependencia
 sudo apt-get install -f
 ```
 
-Después aparece en tu menú de aplicaciones como **OweemeIDE**.
+Después aparece en tu menú de aplicaciones como **OweeCode**.
 
 ### 🐧 Linux — AppImage (sin instalación)
 
 ```bash
-chmod +x OweemeIDE_*.AppImage
-./OweemeIDE_*.AppImage
+chmod +x OweeCode_*.AppImage
+./OweeCode_*.AppImage
 ```
 
 ### 🪟 Windows
@@ -174,7 +174,7 @@ chmod +x OweemeIDE_*.AppImage
 ### 🍎 macOS
 
 1. Descarga el archivo `.dmg`
-2. Abre el `.dmg` y arrastra **OweemeIDE** a la carpeta **Aplicaciones**
+2. Abre el `.dmg` y arrastra **OweeCode** a la carpeta **Aplicaciones**
 3. Si aparece advertencia de seguridad: **Preferencias del Sistema** → **Seguridad** → **"Abrir de todas formas"**
 
 ---
@@ -285,7 +285,7 @@ chmod +x OweemeIDE_*.AppImage
 
 ## Tecnología
 
-OweemeIDE está construido con tecnología moderna y de alto rendimiento:
+OweeCode está construido con tecnología moderna y de alto rendimiento:
 
 | Capa | Tecnología |
 |------|-----------|
@@ -304,7 +304,7 @@ OweemeIDE está construido con tecnología moderna y de alto rendimiento:
 
 - 📧 **Email**: [hector@oweeme.com](mailto:hector@oweeme.com)
 - 🌐 **Web**: [oweeme.com](https://oweeme.com)
-- 🐛 **Issues**: [github.com/oweeme/oweeide/issues](https://github.com/oweeme/oweeide/issues)
+- 🐛 **Issues**: [github.com/oweeme/oweecode/issues](https://github.com/oweeme/oweecode/issues)
 
 ---
 

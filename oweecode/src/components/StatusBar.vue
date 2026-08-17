@@ -60,7 +60,7 @@ const lspStatusTitle = computed(() => {
     <div class="statusbar-left">
       <span class="statusbar-item statusbar-item--brand">
         <img src="/oweedev.png" width="11" height="11" style="border-radius:2px" />
-        OweemeIDE
+        OweeCode
       </span>
 
       <!-- Tab type badge -->

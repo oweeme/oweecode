@@ -289,7 +289,7 @@ async function submit() {
       : await invoke<string>('container_create', { opts })
 
     if (stackMode.value === 'nginx-php-fpm' && props.mode === 'create') {
-      const confPath = `${projectPath.value}/.oweemeide/nginx-php-fpm.conf`
+      const confPath = `${projectPath.value}/.oweecode/nginx-php-fpm.conf`
       await invoke('write_config_file', { path: confPath, content: buildNginxPhpFpmConf(form.name.trim()) })
       const nginxOpts: ContainerOpts = {
         name: nginxStackName.value.trim() || 'nginx_web',
