@@ -13,6 +13,11 @@ interface UpdaterState {
   installing: boolean
   error: string
   dismissed: boolean
+  // Set instead of `error` when the install fails on Linux — the Tauri
+  // updater can only self-replace an AppImage; a .deb/.rpm install lives in
+  // a system directory a regular process can't overwrite, so a failure here
+  // almost always means "wrong install method," not "something broke."
+  manualUpdateUrl: string
 }
 
 const state = reactive<UpdaterState>({
@@ -26,13 +31,17 @@ const state = reactive<UpdaterState>({
   installing: false,
   error: '',
   dismissed: false,
+  manualUpdateUrl: '',
 })
+
+const RELEASES_URL = 'https://github.com/oweeme/oweecode/releases/latest'
 
 let pendingUpdate: Update | null = null
 
 async function checkForUpdates() {
   state.checking = true
   state.error = ''
+  state.manualUpdateUrl = ''
   try {
     const update = await check()
     if (update) {
@@ -58,6 +67,7 @@ async function installUpdate() {
   state.downloading = true
   state.progress = 0
   state.error = ''
+  state.manualUpdateUrl = ''
   let total = 0
   let downloaded = 0
   try {
@@ -77,7 +87,12 @@ async function installUpdate() {
   } catch (e: any) {
     state.downloading = false
     state.installing = false
-    state.error = String(e)
+    const isLinux = !navigator.userAgent.includes('Windows') && !navigator.userAgent.includes('Mac')
+    if (isLinux) {
+      state.manualUpdateUrl = RELEASES_URL
+    } else {
+      state.error = String(e)
+    }
   }
 }
 
