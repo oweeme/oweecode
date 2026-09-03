@@ -1,6 +1,6 @@
 [package]
 name = "oweecode"
-version = "1.4.0"
+version = "1.4.1"
 description = "OweeCode — IDE de desarrollo creado por Héctor Martínez (oweeme.com)"
 authors = ["Héctor Martínez <hector@oweeme.com>"]
 homepage = "https://oweeme.com"

@@ -326,6 +326,7 @@ onMounted(refresh)
     </div>
     <div v-if="actionError" class="ctr-error">{{ actionError }}</div>
 
+    <div class="ctr-scroll">
     <div v-if="pods.length > 0" class="ctr-pods">
       <div class="ctr-pods-title">{{ t('pods') }}</div>
       <div v-for="p in pods" :key="p.id" class="ctr-pod-card">
@@ -404,6 +405,7 @@ onMounted(refresh)
         @remove="remove(c.id, c.running)"
       />
     </div>
+    </div>
 
     <ContainerFormModal
       v-if="showFormModal"
@@ -470,6 +472,7 @@ onMounted(refresh)
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.ctr-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 .ctr-pods { padding: 8px 8px 0; display: flex; flex-direction: column; gap: 6px; }
 .ctr-pods-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--fg-muted); text-transform: uppercase; padding: 0 4px; }
 .ctr-pod-card {
@@ -481,7 +484,7 @@ onMounted(refresh)
 .ctr-pod-rows { display: flex; flex-direction: column; border-top: 1px solid var(--border); margin-top: 2px; padding-top: 4px; }
 .ctr-pod-empty { font-size: 10.5px; color: var(--fg-muted); font-style: italic; padding-left: 12px; }
 
-.ctr-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+.ctr-list { padding: 6px 0; }
 .ctr-standalone-title { margin: 2px 8px 6px; }
 .ctr-empty {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
