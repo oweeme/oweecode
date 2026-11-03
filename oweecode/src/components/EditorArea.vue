@@ -34,9 +34,13 @@ import { json as jsonMode } from '@codemirror/legacy-modes/mode/javascript'
 import { yaml } from '@codemirror/legacy-modes/mode/yaml'
 import { toml } from '@codemirror/legacy-modes/mode/toml'
 import { xml } from '@codemirror/legacy-modes/mode/xml'
-import { dart } from '@codemirror/legacy-modes/mode/clike'
+import { dart, kotlin, java, csharp } from '@codemirror/legacy-modes/mode/clike'
+import { groovy } from '@codemirror/legacy-modes/mode/groovy'
+import { swift } from '@codemirror/legacy-modes/mode/swift'
+import { properties } from '@codemirror/legacy-modes/mode/properties'
 import { jinja2 } from '@codemirror/legacy-modes/mode/jinja2'
 import { svelte } from '@replit/codemirror-lang-svelte'
+import { qmlLanguage } from '../composables/qmlLanguage'
 import { vim } from '@replit/codemirror-vim'
 import { adaLanguage } from '../composables/adaLanguage'
 import { astroLanguage } from '../composables/astroLanguage'
@@ -58,6 +62,7 @@ import ContainerLogsView from './ContainerLogsView.vue'
 import ContainerShellView from './ContainerShellView.vue'
 import BrowserView from './BrowserView.vue'
 import DesignView from './DesignView.vue'
+import FlowView from './FlowView.vue'
 
 const store = useEditorStore()
 const { connectedIds: ftpConnectedIds } = useFtpStore()
@@ -352,6 +357,17 @@ function getLangExtension(lang: string) {
     case 'toml':       return StreamLanguage.define(toml)
     case 'xml':        return StreamLanguage.define(xml)
     case 'dart':       return StreamLanguage.define(dart)
+    case 'kotlin':     return StreamLanguage.define(kotlin)
+    case 'java':       return StreamLanguage.define(java)
+    case 'csharp':     return StreamLanguage.define(csharp)
+    case 'groovy':     return StreamLanguage.define(groovy)
+    case 'swift':      return StreamLanguage.define(swift)
+    case 'properties': return StreamLanguage.define(properties)
+    case 'qml':        return StreamLanguage.define(qmlLanguage)
+    case 'gdscript':   return python()   // GDScript is Python-like: func/var/extends/signal highlight well enough
+    case 'godotscene': return StreamLanguage.define(toml)
+    case 'vala':       return StreamLanguage.define(csharp)
+    case 'blueprint':  return StreamLanguage.define(csharp)
     case 'ada':        return StreamLanguage.define(adaLanguage)
     case 'handlebars': return StreamLanguage.define(jinja2)
     case 'astro':      return StreamLanguage.define(astroLanguage)
@@ -605,6 +621,7 @@ const langColors: Record<string, string> = {
   html: '#e44d26', css: '#264de4', sql: '#e38c00', markdown: '#aaa',
   cpp: '#00599c', json: '#cbcb41', yaml: '#cbcb41', toml: '#9c4221',
   xml: '#e37933', shell: '#89e051', text: '#888', ada: '#02f88c',
+  kotlin: '#a97bff', java: '#b07219', vala: '#a56de2', gdscript: '#478cbf', godotscene: '#478cbf', blueprint: '#3584e4', groovy: '#4298b8', swift: '#f05138', csharp: '#178600', qml: '#41cd52', properties: '#888',
 }
 
 function tabDotColor(lang: string) {
@@ -670,6 +687,13 @@ const openBrowserTabs = computed(() => store.state.tabs.filter(t => t.type === '
           <span class="lang-badge" style="color:#e38c00">SQL</span>
           <span class="lang-badge" style="color:#00599c">C++</span>
           <span class="lang-badge" style="color:#00b4ab">Dart</span>
+          <span class="lang-badge" style="color:#41cd52">Qt</span>
+          <span class="lang-badge" style="color:#41cd52">QML</span>
+          <span class="lang-badge" style="color:#3584e4">GTK</span>
+          <span class="lang-badge" style="color:#a97bff">Kotlin</span>
+          <span class="lang-badge" style="color:#b07219">Java</span>
+          <span class="lang-badge" style="color:#f05138">Swift</span>
+          <span class="lang-badge" style="color:#178600">C#</span>
           <span class="lang-badge" style="color:#02f88c">Ada</span>
         </div>
 
@@ -806,6 +830,12 @@ const openBrowserTabs = computed(() => store.state.tabs.filter(t => t.type === '
     <!-- Visual design / page builder -->
     <DesignView
       v-else-if="store.activeTab()?.type === 'design'"
+      :key="store.activeTab()!.path"
+    />
+
+    <!-- Business flows / project map -->
+    <FlowView
+      v-else-if="store.activeTab()?.type === 'flow'"
       :key="store.activeTab()!.path"
     />
 

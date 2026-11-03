@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OweeCode — el IDE ligero hecho con Rust</title>
+<meta name="description" content="OweeCode: editor, terminal, base de datos, FTP, navegador, diseño visual y flujos de negocio en un solo IDE ligero. Linux, Windows y macOS.">
+<link rel="icon" href="oweedev.png">
+<style>
+  :root { --bg:#0f1114; --card:#171a1f; --line:#262b33; --fg:#e6e9ee; --muted:#9aa4b2; --accent:#2ea88a; --accent2:#5b8def; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg:#f6f8fa; --card:#fff; --line:#d8dee4; --fg:#1f2328; --muted:#59636e; --accent:#1a7f64; --accent2:#2f6feb; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  a { color:var(--accent2); text-decoration:none; } a:hover { text-decoration:underline; }
+  .wrap { max-width:1040px; margin:0 auto; padding:0 20px; }
+  nav { display:flex; align-items:center; gap:18px; padding:16px 0; }
+  nav .brand { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--fg); } nav .brand img { width:30px; height:30px; border-radius:8px; }
+  nav .sp { flex:1; } nav a.link { color:var(--muted); font-size:14px; }
+  .lang { display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .lang button { background:none; border:0; color:var(--muted); padding:5px 10px; font:inherit; font-size:13px; cursor:pointer; } .lang button.on { background:var(--card); color:var(--fg); }
+  .hero { text-align:center; padding:56px 0 40px; }
+  .hero img.logo { width:112px; height:112px; border-radius:26px; box-shadow:0 12px 40px #2ea88a33; }
+  h1 { font-size:clamp(34px,6vw,56px); line-height:1.1; margin:22px 0 12px; letter-spacing:-.02em; }
+  .hero p.sub { max-width:640px; margin:0 auto 26px; color:var(--muted); font-size:18px; }
+  .cta { display:inline-flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+  .btn { display:inline-block; padding:12px 22px; border-radius:10px; font-weight:600; border:1px solid var(--line); color:var(--fg); background:var(--card); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; } .btn:hover { text-decoration:none; filter:brightness(1.08); }
+  .meta { margin-top:14px; color:var(--muted); font-size:13px; }
+  section { padding:44px 0; border-top:1px solid var(--line); }
+  h2 { font-size:28px; margin:0 0 6px; letter-spacing:-.01em; } .lead { color:var(--muted); margin:0 0 26px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; } .card h3 { margin:0 0 6px; font-size:17px; } .card p { margin:0; color:var(--muted); font-size:15px; }
+  .card .ic { font-size:24px; margin-bottom:8px; display:block; }
+  .dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .dl .card b { display:block; margin-bottom:4px; } code { background:var(--bg); border:1px solid var(--line); padding:2px 7px; border-radius:6px; font-size:13px; }
+  pre { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px 14px; overflow:auto; font-size:13px; margin:10px 0 0; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; } .chips span { border:1px solid var(--line); background:var(--card); border-radius:999px; padding:4px 12px; font-size:14px; color:var(--muted); }
+  footer { border-top:1px solid var(--line); padding:26px 0 40px; color:var(--muted); font-size:14px; text-align:center; }
+  [data-l] { display:none; } html[data-lang="es"] [data-l="es"], html[data-lang="en"] [data-l="en"] { display:revert; }
+  html[data-lang="es"] span[data-l="es"], html[data-lang="en"] span[data-l="en"] { display:inline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#"><img src="oweedev.png" alt=""> OweeCode</a>
+    <span class="sp"></span>
+    <a class="link" href="#features"><span data-l="es">Características</span><span data-l="en">Features</span></a>
+    <a class="link" href="#download"><span data-l="es">Descargar</span><span data-l="en">Download</span></a>
+    <a class="link" href="https://github.com/oweeme/oweecode">GitHub</a>
+    <div class="lang" role="group" aria-label="Language"><button data-set="es">ES</button><button data-set="en">EN</button></div>
+  </nav>
+
+  <header class="hero">
+    <img class="logo" src="oweedev.png" alt="OweeCode">
+    <h1>OweeCode</h1>
+    <p class="sub" data-l="es">El IDE ligero para quien quiere todo en un solo lugar: editor, terminal, bases de datos, FTP, navegador, diseño visual y flujos de negocio. Hecho con Rust.</p>
+    <p class="sub" data-l="en">The lightweight IDE for people who want everything in one place: editor, terminal, databases, FTP, browser, visual design and business flows. Built with Rust.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/oweeme/oweecode/releases/latest"><span data-l="es">⬇ Descargar la última versión</span><span data-l="en">⬇ Download the latest version</span></a>
+      <a class="btn" href="https://github.com/oweeme/oweecode"><span data-l="es">Ver el código</span><span data-l="en">View the source</span></a>
+    </div>
+    <div class="meta">v1.5.0 · Linux · Windows · macOS · MIT</div>
+  </header>
+
+  <section id="features">
+    <h2><span data-l="es">Todo lo que necesitas</span><span data-l="en">Everything you need</span></h2>
+    <p class="lead"><span data-l="es">Sin plugins extra y sin gigabytes de RAM.</span><span data-l="en">No extra plugins, no gigabytes of RAM.</span></p>
+    <div class="grid">
+      <div class="card"><span class="ic">✏️</span><h3 data-l="es">Editor y terminal</h3><h3 data-l="en">Editor & terminal</h3><p data-l="es">Resaltado para decenas de lenguajes, autocompletado con LSP, búsqueda en el proyecto, Git y terminal integrados.</p><p data-l="en">Highlighting for dozens of languages, LSP completion, project search, built-in Git and terminal.</p></div>
+      <div class="card"><span class="ic">🌐</span><h3 data-l="es">Navegador con proyectos</h3><h3 data-l="en">Project-aware browser</h3><p data-l="es">Detecta tus servidores (80, 3000, 9000…), arranca el de tu proyecto, vista dividida, recarga en vivo y favoritos.</p><p data-l="en">Finds your servers (80, 3000, 9000…), starts your project's, split view, live reload and bookmarks.</p></div>
+      <div class="card"><span class="ic">📡</span><h3 data-l="es">FTP / SFTP / FTPS</h3><h3 data-l="en">FTP / SFTP / FTPS</h3><p data-l="es">Como FileZilla: teclado, cola de transferencias, sincronización de carpetas y verificación de claves y certificados.</p><p data-l="en">FileZilla-style: keyboard, transfer queue, folder sync and key/certificate verification.</p></div>
+      <div class="card"><span class="ic">🔀</span><h3 data-l="es">Flujos de negocio</h3><h3 data-l="en">Business flows</h3><p data-l="es">Diseña procesos con bloques, ejecútalos con scripts en cualquier lenguaje, siembra datos y genera código base.</p><p data-l="en">Design processes with blocks, run them with scripts in any language, seed data and generate starter code.</p></div>
+      <div class="card"><span class="ic">🎨</span><h3 data-l="es">Diseño visual</h3><h3 data-l="en">Visual design</h3><p data-l="es">Edita Quasar, Vue y HTML visualmente, y diseña interfaces nativas para Qt, QML, GTK y juegos.</p><p data-l="en">Edit Quasar, Vue and HTML visually, and design native UIs for Qt, QML, GTK and games.</p></div>
+      <div class="card"><span class="ic">🗄️</span><h3 data-l="es">Bases de datos y API</h3><h3 data-l="en">Databases & API</h3><p data-l="es">MySQL, PostgreSQL, SQLite y Redis, diagrama ER, cliente de API con colecciones y generador de clientes.</p><p data-l="en">MySQL, PostgreSQL, SQLite and Redis, ER diagram, API client with collections and client generator.</p></div>
+      <div class="card"><span class="ic">🤖</span><h3 data-l="es">IA local y en la nube</h3><h3 data-l="en">Local & cloud AI</h3><p data-l="es">Asistente con tus proveedores, agente local con Ollama y contexto del proyecto.</p><p data-l="en">Assistant with your providers, a local agent with Ollama and project context.</p></div>
+      <div class="card"><span class="ic">📱</span><h3 data-l="es">Móvil y escritorio</h3><h3 data-l="en">Mobile & desktop</h3><p data-l="es">Diagnóstico y comandos para Capacitor, Android, Flutter, Qt, GTK y Godot.</p><p data-l="en">Diagnostics and commands for Capacitor, Android, Flutter, Qt, GTK and Godot.</p></div>
+      <div class="card"><span class="ic">🐳</span><h3 data-l="es">Contenedores</h3><h3 data-l="en">Containers</h3><p data-l="es">Podman y Docker: contenedores, pods, logs y shell integrados.</p><p data-l="en">Podman and Docker: containers, pods, logs and shell built in.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span data-l="es">En tu idioma</span><span data-l="en">In your language</span></h2>
+    <p class="lead"><span data-l="es">La interfaz está disponible en 8 idiomas.</span><span data-l="en">The interface is available in 8 languages.</span></p>
+    <div class="chips"><span>Español</span><span>English</span><span>Deutsch</span><span>Français</span><span>한국어</span><span>中文</span><span>日本語</span><span>Русский</span></div>
+  </section>
+
+  <section id="download">
+    <h2><span data-l="es">Descargar</span><span data-l="en">Download</span></h2>
+    <p class="lead"><span data-l="es">Instaladores en la página de releases.</span><span data-l="en">Installers on the releases page.</span></p>
+    <div class="dl">
+      <div class="card"><b>🐧 Linux</b><span data-l="es">.deb (Debian/Ubuntu) y .AppImage</span><span data-l="en">.deb (Debian/Ubuntu) and .AppImage</span><pre>sudo dpkg -i OweeCode_*.deb</pre></div>
+      <div class="card"><b>🪟 Windows</b><span data-l="es">Instalador .exe o .msi</span><span data-l="en">.exe or .msi installer</span></div>
+      <div class="card"><b>🍎 macOS</b><span data-l="es">Archivo .dmg: arrástralo a Aplicaciones</span><span data-l="en">.dmg file: drag it to Applications</span></div>
+    </div>
+    <p style="margin-top:18px"><a class="btn primary" href="https://github.com/oweeme/oweecode/releases/latest"><span data-l="es">Ir a las descargas →</span><span data-l="en">Go to downloads →</span></a></p>
+  </section>
+
+  <footer>
+    <span data-l="es">Hecho por</span><span data-l="en">Made by</span> <a href="https://oweeme.com">Héctor Martínez · oweeme.com</a> · MIT ·
+    <a href="https://github.com/oweeme/oweecode/issues"><span data-l="es">Reportar un problema</span><span data-l="en">Report an issue</span></a>
+  </footer>
+</div>
+<script>
+  (function () {
+    var saved = null; try { saved = localStorage.getItem('owee_site_lang'); } catch (e) {}
+    var lang = saved || ((navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en');
+    function apply(l) {
+      document.documentElement.setAttribute('data-lang', l); document.documentElement.lang = l;
+      document.querySelectorAll('[data-set]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-set') === l); });
+      try { localStorage.setItem('owee_site_lang', l); } catch (e) {}
+    }
+    document.querySelectorAll('[data-set]').forEach(function (b) { b.addEventListener('click', function () { apply(b.getAttribute('data-set')); }); });
+    apply(lang);
+  })();
+</script>
+</body>
+</html>

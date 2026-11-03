@@ -60,9 +60,9 @@ const hasSelection = computed(() => selectedText.value.trim().length > 0)
 const hasFile = computed(() => activeTab.value?.type === 'code')
 
 const contextLabel = computed(() => {
-  if (hasSelection.value) return `${activeTab.value?.name ?? 'archivo'} · selección (${selectedText.value.split('\n').length} líneas)`
+  if (hasSelection.value) return t('iFileSel', { name: activeTab.value?.name ?? t('iFileDefault'), n: selectedText.value.split('\n').length })
   if (hasFile.value) return activeTab.value?.name ?? ''
-  return 'sin archivo activo'
+  return t('iNoFile')
 })
 
 function buildContext(includeSelection: boolean): string {
@@ -94,7 +94,7 @@ async function detectOllamaModels() {
     // otherwise this would silently reset the user's choice back to models[0]
     // every time the settings panel reopens.
     if (models.length > 0 && !models.includes(model.value)) model.value = models[0]
-    else if (models.length === 0) ollamaError.value = 'No hay modelos descargados. Usá: ollama pull qwen2.5-coder:7b-instruct-q4_K_M'
+    else if (models.length === 0) ollamaError.value = t('iNoModels')
   } catch (e: any) { ollamaError.value = String(e) }
   ollamaLoading.value = false
 }
@@ -112,7 +112,7 @@ async function detectOpenrouterModels() {
       // reads ai_model straight from localStorage, independently of this ref.
       if (provider.value === 'openrouter') localStorage.setItem('ai_model', model.value)
     }
-    if (models.length === 0) openrouterError.value = 'OpenRouter no reporta modelos gratis en este momento.'
+    if (models.length === 0) openrouterError.value = t('iNoFree')
   } catch (e: any) { openrouterError.value = String(e) }
   openrouterLoading.value = false
 }
@@ -178,7 +178,7 @@ async function sendMessage(useSelection = true) {
 
   const ctx = buildContext(useSelection)
   const contextInfo = hasSelection.value && useSelection
-    ? `📎 ${activeTab.value?.name} · selección`
+    ? t('iChipSel', { name: activeTab.value?.name ?? '' })
     : hasFile.value
       ? `📎 ${activeTab.value?.name}`
       : undefined
@@ -297,14 +297,14 @@ function onKeydown(e: KeyboardEvent) {
     <div class="ai-context-bar" v-if="hasFile || hasSelection">
       <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" style="flex-shrink:0;opacity:.6"><path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm5.5 1.5v2a1 1 0 0 0 1 1h2L9.5 1.5z"/></svg>
       <span class="ai-context-label">{{ contextLabel }}</span>
-      <span v-if="hasSelection" class="ai-selection-chip">selección activa</span>
+      <span v-if="hasSelection" class="ai-selection-chip">{{ t('iSelActive') }}</span>
     </div>
 
     <!-- Settings panel -->
     <transition name="slide">
       <div v-if="showSettings" class="ai-settings">
         <div class="settings-title-row">
-          <span class="settings-title">Configuración AI</span>
+          <span class="settings-title">{{ t('iSettings') }}</span>
           <button class="settings-close" @click="showSettings = false">✕</button>
         </div>
 
@@ -351,14 +351,14 @@ function onKeydown(e: KeyboardEvent) {
         <div class="settings-note" :class="provider === 'claude' ? 'note-warn' : ''">
           {{ currentProvider.keyNote }}
           <template v-if="provider === 'claude'">
-            <br><br><strong>💡 Sin API key:</strong> En la terminal del IDE escribe <code>claude</code> — usa tu plan Pro directamente.
+            <br><br><span v-html="t('iNoKey')" />
           </template>
         </div>
 
         <!-- Claude Code CLI shortcut -->
         <div v-if="provider === 'claude'" class="claude-cli-box">
           <div class="cli-box-title">◆ Claude Code CLI</div>
-          <p class="cli-box-desc">Abre Claude Code completo en la terminal del IDE (sin necesidad de API key, usa tu plan Pro)</p>
+          <p class="cli-box-desc">{{ t('iCliDesc') }}</p>
           <button class="cli-launch-btn" @click="emit('run-terminal', 'claude'); showSettings = false">
             Abrir Claude en Terminal →
           </button>
@@ -378,19 +378,19 @@ function onKeydown(e: KeyboardEvent) {
 
           <div v-if="hasFile" class="ai-quick-actions">
             <p class="ai-quick-label">{{ t('quickActionsFor') }} <strong>{{ activeTab?.name }}</strong></p>
-            <button class="qa-btn" @click="quickAsk('Explica este código en detalle')">📖 {{ t('explainCode') }}</button>
-            <button class="qa-btn" @click="quickAsk('Encuentra bugs y problemas en este código')">🐛 {{ t('findBugs') }}</button>
-            <button class="qa-btn" @click="quickAsk('Refactoriza y mejora este código')">⚡ {{ t('refactorCode') }}</button>
-            <button class="qa-btn" @click="quickAsk('Escribe pruebas unitarias para este código')">🧪 {{ t('generateTests') }}</button>
-            <button class="qa-btn" @click="quickAsk('Agrega comentarios JSDoc/PHPDoc a este código')">📝 {{ t('documentCode') }}</button>
-            <button class="qa-btn" @click="quickAsk('Optimiza el rendimiento de este código')">🚀 {{ t('optimizeCode') }}</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ1'))">📖 {{ t('explainCode') }}</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ2'))">🐛 {{ t('findBugs') }}</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ3'))">⚡ {{ t('refactorCode') }}</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ4'))">🧪 {{ t('generateTests') }}</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ5'))">📝 {{ t('documentCode') }}</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ6'))">🚀 {{ t('optimizeCode') }}</button>
           </div>
           <div v-else class="ai-quick-actions">
             <p class="ai-quick-label">{{ t('suggestions') }}</p>
-            <button class="qa-btn" @click="quickAsk('¿Cómo crear una API REST en PHP?', false)">PHP API REST</button>
-            <button class="qa-btn" @click="quickAsk('¿Cómo hacer queries complejos en SQL?', false)">SQL Queries</button>
-            <button class="qa-btn" @click="quickAsk('Explícame Vue 3 Composition API', false)">Vue 3 Composition</button>
-            <button class="qa-btn" @click="quickAsk('¿Cómo funciona async/await en JS?', false)">Async/Await JS</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ7'), false)">PHP API REST</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ8'), false)">SQL Queries</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ9'), false)">Vue 3 Composition</button>
+            <button class="qa-btn" @click="quickAsk(t('iQ10'), false)">Async/Await JS</button>
           </div>
         </div>
 

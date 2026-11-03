@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog'
+import { open as openDialog, save as saveDialog, ask } from '@tauri-apps/plugin-dialog'
 import grapesjs, { type Editor } from 'grapesjs'
 import presetWebpage from 'grapesjs-preset-webpage'
 import pluginForms from 'grapesjs-plugin-forms'
@@ -12,7 +12,14 @@ import { Controls } from '@vue-flow/controls'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 import '@vue-flow/controls/dist/style.css'
+import { loadProviderKey, type Provider } from '../composables/aiProviders'
+import { blockText, blockCategory } from '../composables/blockText'
 import { useI18n } from '../composables/useI18n'
+import NativeUiView from './NativeUiView.vue'
+import { nativeUi } from '../composables/useNativeUiState'
+import { buildQuasarSfc, parseQuasarSfc, QUASAR_BLOCKS, QUASAR_CANVAS_CSS, templateToCanvas, canvasToTemplate } from '../composables/quasarConvert'
+import { designRequest } from '../composables/designRequest'
+import { splitVueSfc, joinVueSfc, analyzeTemplate, splitHtml, joinHtml, type VueParts } from '../composables/designFile'
 import { useEditorStore } from '../composables/useEditorStore'
 
 type DesignFormat = 'html' | 'vue'
@@ -123,31 +130,36 @@ const DAISY_BLOCKS: { id: string; label: string; category: string; content: stri
 ]
 
 function registerCustomBlocks(ed: Editor, format: DesignFormat) {
+  const loc = useI18n().locale.value
+  const bl = (x: string) => blockText(x, loc), bc = (x: string) => blockCategory(x, loc)
   const bm = ed.BlockManager
   bm.add('ow-navbar', {
-    label: 'Barra de navegación', category: 'Profesional',
+    label: bl('Barra de navegación'), category: bc('Profesional'),
     content: `<div class="ow-navbar"><span class="ow-navbar__brand">Mi Sitio</span><div class="ow-navbar__actions"><a class="ow-btn" href="#">Acción</a></div></div>`,
   })
   bm.add('ow-hero', {
-    label: 'Encabezado / Hero', category: 'Profesional',
+    label: bl('Encabezado / Hero'), category: bc('Profesional'),
     content: `<section class="ow-hero"><h1>Título llamativo</h1><p>Subtítulo o descripción breve que explica tu producto o servicio.</p><a class="ow-btn" href="#">Empezar</a></section>`,
   })
   bm.add('ow-card', {
-    label: 'Tarjeta con borde', category: 'Profesional',
+    label: bl('Tarjeta con borde'), category: bc('Profesional'),
     content: `<div class="ow-card"><h3>Título de la tarjeta</h3><p>Descripción breve del contenido de esta tarjeta.</p></div>`,
   })
   bm.add('ow-button', {
-    label: 'Botón', category: 'Profesional',
+    label: bl('Botón'), category: bc('Profesional'),
     content: `<a class="ow-btn" href="#">Botón</a>`,
   })
   bm.add('ow-container', {
-    label: 'Contenedor vacío', category: 'Profesional',
+    label: bl('Contenedor vacío'), category: bc('Profesional'),
     content: `<div class="ow-container"></div>`,
   })
 
+  if (format === 'vue') {   // 'vue' projects are Quasar projects
+    for (const b of QUASAR_BLOCKS) bm.add(b.id, { label: bl(b.label), category: bc(b.category), content: b.content })
+  }
   if (format === 'html') {
     for (const b of DAISY_BLOCKS) {
-      bm.add(b.id, { label: b.label, category: b.category, content: b.content })
+      bm.add(b.id, { label: bl(b.label), category: bc(b.category), content: b.content })
     }
   }
 }
@@ -155,8 +167,8 @@ function registerCustomBlocks(ed: Editor, format: DesignFormat) {
 const { t } = useI18n()
 const store = useEditorStore()
 
-type Mode = 'start' | 'map' | 'editor'
-const mode = ref<Mode>('start')
+type Mode = 'start' | 'map' | 'editor' | 'native'
+const mode = ref<Mode>(nativeUi.active ? 'native' : 'start')   // coming back to the tab: keep the native designer open
 
 const projectDir = ref<string | null>(null)
 const manifest = ref<DesignManifest | null>(null)
@@ -214,19 +226,7 @@ ${html}
 }
 
 function wrapVueSfc(html: string, css: string): string {
-  // GrapesJS's HTML output is plain markup + attributes, which is valid
-  // straight inside a Vue <template> — Vue templates are a superset of HTML.
-  return `<script setup lang="ts">
-<\/script>
-
-<template>
-${html}
-</template>
-
-<style scoped>
-${css}
-</style>
-`
+  return buildQuasarSfc(html, css)
 }
 
 function parseHtmlDocument(fileContent: string): { html: string; css: string } {
@@ -235,9 +235,7 @@ function parseHtmlDocument(fileContent: string): { html: string; css: string } {
 }
 
 function parseVueSfc(fileContent: string): { html: string; css: string } {
-  const templateMatch = fileContent.match(/<template>([\s\S]*)<\/template>/)
-  const styleMatch = fileContent.match(/<style scoped>([\s\S]*)<\/style>/)
-  return { html: templateMatch?.[1]?.trim() ?? '', css: styleMatch?.[1]?.trim() ?? '' }
+  return parseQuasarSfc(fileContent)
 }
 
 // ── Project create / open ──────────────────────────────────────────────
@@ -367,6 +365,15 @@ async function mountEditor(html: string, css: string, format: DesignFormat) {
     },
   })
   registerCustomBlocks(editor, format)
+  if (format === 'vue') {
+    // Quasar look-alike styles live only inside the canvas; they are never written to the page's CSS
+    const ed = editor
+    ed.on('load', () => {
+      const doc = ed.Canvas.getDocument()
+      if (!doc) return
+      const el = doc.createElement('style'); el.textContent = QUASAR_CANVAS_CSS; doc.head.appendChild(el)
+    })
+  }
   editor.setStyle(`${BASE_BLOCK_CSS}\n${css}`)
   if (html) editor.setComponents(html)
 }
@@ -385,6 +392,98 @@ async function openPageEditor(pageId: string) {
     await mountEditor('', '', manifest.value.format)
   }
 }
+
+// ── Open an existing .vue (Quasar) / .html file in the designer and write it back in place ──
+interface FileSession { path: string; kind: 'vue' | 'html'; original: string; parts?: VueParts; wrapperOpen: string | null; wrapperTag: string | null; readOnly: boolean }
+const fileSession = ref<FileSession | null>(null)
+const currentFormat = computed<DesignFormat>(() => fileSession.value ? (fileSession.value.kind === 'vue' ? 'vue' : 'html') : (manifest.value?.format ?? 'html'))
+const fileBase = (p: string) => p.split('/').pop() ?? p
+
+async function openFileInDesigner(path: string) {
+  openingError.value = ''
+  try {
+    const original = await invoke<string>('open_file', { path })
+    const kind: 'vue' | 'html' = path.toLowerCase().endsWith('.vue') ? 'vue' : 'html'
+    let reasons: string[] = []
+    let sess: FileSession
+    let html: string, css = ''
+    if (kind === 'vue') {
+      const parts = splitVueSfc(original)
+      if (!parts) { openingError.value = t('gNoTemplate'); return }
+      reasons = analyzeTemplate(parts.inner).reasons
+      const c = templateToCanvas(parts.inner)
+      html = c.html
+      sess = { path, kind, original, parts, wrapperOpen: c.wrapperOpen, wrapperTag: c.wrapperTag, readOnly: false }
+    } else {
+      const h = splitHtml(original)
+      if (/<script\b/i.test(h.body)) reasons.push(t('gScriptInBody'))
+      html = h.body; css = h.css
+      sess = { path, kind, original, wrapperOpen: null, wrapperTag: null, readOnly: false }
+    }
+    if (kind === 'html' && reasons.length) {
+      // scripts inside <body> would be dropped by the canvas: only let the user look, or save a copy
+      const edit = await ask(t('gAskEdit', { file: fileBase(path), reasons: reasons.join('\n• ') }),
+        { title: t('gAskTitle'), kind: 'warning', okLabel: t('gEditBackup'), cancelLabel: t('gViewOnly') })
+      sess.readOnly = !edit
+    } else if (reasons.length) { statusMsg.value = reasons[0]; setTimeout(() => { statusMsg.value = '' }, 9000) }
+    fileSession.value = sess
+    mode.value = 'editor'
+    await mountEditor(html, css, kind === 'vue' ? 'vue' : 'html')
+  } catch (e) { openingError.value = t('uErrOpen', { e: String(e) }) }
+}
+
+async function saveFileSession() {
+  const sess = fileSession.value
+  if (!sess || !editor) return
+  if (sess.readOnly) { await saveFileCopy(); return }
+  try {
+    const html = editor.getHtml(), css = (editor.getCss() ?? '').replace(/\*\s*\{\s*box-sizing:\s*border-box;\s*\}\s*body\s*\{\s*margin:\s*0;\s*\}/g, '').trim()
+    let out: string, note = ''
+    if (sess.kind === 'vue') {
+      const { template, form } = canvasToTemplate(html, sess.wrapperOpen, sess.wrapperTag)
+      out = joinVueSfc(sess.parts!, template)
+      const missing = Object.keys(form).filter(k => !sess.original.includes(`${k}:`))
+      if (missing.length) {
+        note = t('gNote', { fields: missing.map(k => `${k}: ''`).join(', ') })
+        try { await navigator.clipboard.writeText(`const form = reactive({\n${missing.map(k => `  ${k}: ${form[k]},`).join('\n')}\n})`) } catch { /* optional */ }
+      }
+    } else out = joinHtml(sess.original, html, css)
+    await invoke('save_file', { path: `${sess.path}.owee.bak`, content: sess.original })
+    await invoke('save_file', { path: sess.path, content: out })
+    sess.original = out
+    if (sess.kind === 'vue') sess.parts = splitVueSfc(out) ?? sess.parts
+    statusMsg.value = t('gSavedIn', { file: fileBase(sess.path), note })
+    setTimeout(() => { statusMsg.value = '' }, 9000)
+  } catch (e) { statusMsg.value = t('gErrSave', { e: String(e) }) }
+}
+
+async function saveFileCopy() {
+  const sess = fileSession.value
+  if (!sess || !editor) return
+  const path = await saveDialog({ defaultPath: sess.path.replace(/(\.\w+)$/, '.diseno$1') })
+  if (!path) return
+  const html = editor.getHtml(), css = editor.getCss() ?? ''
+  const out = sess.kind === 'vue' ? (() => { const { template } = canvasToTemplate(html, sess.wrapperOpen, sess.wrapperTag); return joinVueSfc(sess.parts!, template) })() : joinHtml(sess.original, html, css)
+  await invoke('save_file', { path, content: out })
+  statusMsg.value = `Copia guardada en ${path}`
+  setTimeout(() => { statusMsg.value = '' }, 6000)
+}
+
+function leaveFileSession() {
+  editor?.destroy(); editor = null
+  fileSession.value = null
+  mode.value = 'start'
+}
+
+onMounted(async () => {
+  // "Abrir en Diseño" from the project map
+  const req = designRequest.path
+  if (req) {
+    designRequest.path = null
+    if (/\.(ui|qml)$/i.test(req)) { nativeUi.pendingImport = req; nativeUi.active = true; mode.value = 'native' }   // Qt Designer / GTK files go to the native designer
+    else await openFileInDesigner(req)
+  }
+})
 
 function backToMap() {
   editor?.destroy()
@@ -429,7 +528,7 @@ async function exportCopy(format: DesignFormat) {
 // ── AI-assisted generation (reuses whatever provider/key is already
 // configured in the AI Assistant panel — no separate settings screen here) ──
 const AI_SYSTEM_HTML = 'Sos un generador de fragmentos HTML para un editor visual de sitios web (tipo Wix). Respondé ÚNICAMENTE con un fragmento de HTML válido — sin <html>, <head> ni <body>, sin explicaciones, sin bloques de código markdown (nada de ```). El proyecto ya carga DaisyUI y Tailwind, así que podés usar sus clases (btn, card, hero, navbar, alert, badge, input input-bordered, flex, grid, p-4, text-xl, bg-base-200, etc.). El resultado debe verse profesional y quedar listo para insertarse tal cual.'
-const AI_SYSTEM_VUE = 'Sos un generador de fragmentos HTML para un editor visual de sitios web. Respondé ÚNICAMENTE con un fragmento de HTML válido — sin <html>, <head> ni <body>, sin explicaciones, sin bloques de código markdown (nada de ```). NO uses clases de Tailwind ni de ningún framework de CSS: el proyecto exporta a un componente Vue propio sin esas librerías, así que usá HTML semántico simple (section, h1, p, div, button, etc.) con estilos inline solo si hace falta.'
+const AI_SYSTEM_VUE = 'Sos un generador de fragmentos HTML para un editor visual de sitios web. Respondé ÚNICAMENTE con un fragmento de HTML válido — sin <html>, <head> ni <body>, sin explicaciones, sin bloques de código markdown (nada de ```). NO uses clases de Tailwind ni de ningún framework de CSS: el proyecto exporta a una página Quasar: usá HTML semántico simple (div, h1, p, section) con las clases utilitarias de Quasar (row, col-12, col-md-6, q-pa-md, q-mb-md, text-h5, text-center, bg-primary, text-primary), sin estilos inline salvo que haga falta.'
 
 function extractHtml(reply: string): string {
   const match = reply.match(/```(?:html)?\n?([\s\S]*?)```/)
@@ -438,10 +537,10 @@ function extractHtml(reply: string): string {
 
 async function generateWithAi() {
   const prompt = aiPrompt.value.trim()
-  if (!prompt || !editor || !manifest.value || aiLoading.value) return
+  if (!prompt || !editor || (!manifest.value && !fileSession.value) || aiLoading.value) return
 
   const provider = localStorage.getItem('ai_provider') || 'claude'
-  const apiKey = provider === 'ollama' ? 'ollama' : (localStorage.getItem(`ai_key_${provider}`) ?? '')
+  const apiKey = provider === 'ollama' ? 'ollama' : loadProviderKey(provider as Provider)
   if (!apiKey) {
     aiError.value = t('designAiNoKey')
     return
@@ -451,7 +550,7 @@ async function generateWithAi() {
   aiError.value = ''
   aiLoading.value = true
   try {
-    const system = manifest.value.format === 'html' ? AI_SYSTEM_HTML : AI_SYSTEM_VUE
+    const system = currentFormat.value === 'html' ? AI_SYSTEM_HTML : AI_SYSTEM_VUE
     const reply = await invoke<string>('call_ai', {
       provider, apiKey, model, system,
       messages: [{ role: 'user', content: prompt }],
@@ -494,11 +593,16 @@ onBeforeUnmount(() => {
         </button>
         <div class="design-divider">—</div>
         <button class="design-btn" @click="openExistingProject">{{ t('designOpenExisting') }}</button>
+        <div class="design-divider">—</div>
+        <button class="design-btn design-btn--accent" @click="nativeUi.active = true; mode = 'native'">{{ t('gNative') }}</button>
+        <p class="design-native-hint">{{ t('gNativeHint') }}</p>
         <p v-if="openingError" class="design-error">{{ openingError }}</p>
       </div>
     </div>
 
     <!-- Site map: n8n-style connectable page cards -->
+    <NativeUiView v-else-if="mode === 'native'" @back="mode = 'start'" />
+
     <template v-else-if="mode === 'map' && manifest">
       <div class="design-toolbar">
         <span class="design-title">{{ manifest.name }}</span>
@@ -543,10 +647,12 @@ onBeforeUnmount(() => {
     <!-- Page editor (GrapesJS canvas) -->
     <template v-else-if="mode === 'editor'">
       <div class="design-toolbar">
-        <button class="design-btn" @click="backToMap">{{ t('designBackToMap') }}</button>
+        <button class="design-btn" @click="fileSession ? leaveFileSession() : backToMap()">{{ fileSession ? t('gClose') : t('designBackToMap') }}</button>
+        <span v-if="fileSession" class="design-file-name" :title="fileSession.path">📄 {{ fileBase(fileSession.path) }}<em v-if="fileSession.readOnly">{{ t('gReadOnly') }}</em></span>
         <div class="design-spacer" />
         <span v-if="statusMsg" class="design-status">{{ statusMsg }}</span>
-        <button class="design-btn design-btn--accent" @click="savePage">{{ t('designSave') }}</button>
+        <button v-if="fileSession" class="design-btn" @click="saveFileCopy">{{ t('gSaveCopy') }}</button>
+        <button class="design-btn design-btn--accent" :disabled="!!fileSession?.readOnly" @click="fileSession ? saveFileSession() : savePage()">{{ fileSession ? t('gSaveFile') : t('designSave') }}</button>
         <button class="design-btn" @click="exportCopy('html')">{{ t('designExportHtml') }}</button>
         <button class="design-btn" @click="exportCopy('vue')">{{ t('designExportVue') }}</button>
       </div>
@@ -579,6 +685,8 @@ onBeforeUnmount(() => {
 .design-dir-row { display:flex; gap:6px; }
 .design-dir-row .design-input { flex:1; min-width:0; }
 .design-divider { text-align:center; color:var(--fg-muted); font-size:11px; }
+.design-native-hint { font-size: 11px; color: var(--fg-muted); margin: 6px 0 0; text-align: center; }
+.design-file-name { font-size: 12px; color: var(--fg); margin-left: 10px; } .design-file-name em { color: #f0883e; font-style: normal; }
 .design-error { color:#e55; font-size:11.5px; margin:0; }
 
 .design-input {

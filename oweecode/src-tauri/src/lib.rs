@@ -14,6 +14,7 @@
 //   linting        quick syntax linting via each language's own toolchain
 //   http_client     generic HTTP request panel
 //   lsp            Language Server Protocol bridge (IntelliSense)
+//   tools          tool installer (Preferences) and project import graph (Flows)
 //   agent          local AI agent: project-confined fs/shell tools, Ollama
 //                  tool-calling chat and model install/pull
 
@@ -30,6 +31,9 @@ mod containers;
 mod linting;
 mod http_client;
 mod lsp;
+mod tools;
+mod secrets;
+mod devserver;
 
 use agent::*;
 use db::*;
@@ -43,6 +47,9 @@ use containers::*;
 use linting::*;
 use http_client::*;
 use lsp::*;
+use tools::*;
+use secrets::*;
+use devserver::*;
 
 // Running via `npm run tauri dev` attaches this process to the terminal's
 // controlling tty and foreground process group — so an accidental Ctrl+Z (or
@@ -197,6 +204,21 @@ pub fn run() {
             agent_search,
             agent_run_command,
             ollama_check_installed,
+            lsp_check_installed,
+            install_dev_tool,
+            secret_set,
+            secret_get,
+            secret_delete,
+            scan_project_graph,
+            flow_run_command,
+            detect_mobile_project,
+            project_doctor,
+            list_listening_ports,
+            detect_dev_servers,
+            static_server_start,
+            static_server_stop,
+            static_server_ports,
+            project_fingerprint,
             ollama_pull_model,
             agent_ollama_chat,
         ])

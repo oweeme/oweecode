@@ -5,12 +5,13 @@ import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialo
 import { useEditorStore } from '../composables/useEditorStore'
 import { useFtpStore, type FtpConn } from '../composables/useFtpStore'
 import { useI18n } from '../composables/useI18n'
+import { connectFtp, disconnectFtp } from '../composables/useFtpConnect'
 
 const store = useEditorStore()
 const { t } = useI18n()
 const emit = defineEmits<{ 'open-conn': [connId: string, connName: string, protocol: string] }>()
 
-const { connections, connectedIds, save } = useFtpStore()
+const { connections, connectedIds, save, keychainBlocked } = useFtpStore()
 const connectingId = ref<string | null>(null)
 const errorMsg = ref('')
 const showForm = ref(false)
@@ -36,7 +37,7 @@ function openEditForm(c: FtpConn) {
 }
 
 function onProtocolChange() {
-  form.value.port = form.value.protocol === 'sftp' ? 22 : 21
+  form.value.port = form.value.protocol === 'sftp' ? 22 : 21   // ftp and ftps(explicit) both use 21
 }
 
 function cancelForm() { showForm.value = false; editingConn.value = null }
@@ -54,7 +55,7 @@ function submitForm() {
 }
 
 function removeConn(id: string) {
-  if (connectedIds.value.has(id)) invoke('remote_disconnect', { id })
+  if (connectedIds.value.has(id)) void disconnectFtp(id)
   connectedIds.value.delete(id)
   connections.value = connections.value.filter(c => c.id !== id)
   save()
@@ -62,28 +63,12 @@ function removeConn(id: string) {
 
 async function toggleConnect(c: FtpConn) {
   errorMsg.value = ''
-  if (connectedIds.value.has(c.id)) {
-    await invoke('remote_disconnect', { id: c.id })
-    connectedIds.value.delete(c.id)
-    connectedIds.value = new Set(connectedIds.value)
-    window.dispatchEvent(new CustomEvent('ftp-disconnected', { detail: c.id }))
-    return
-  }
+  if (connectedIds.value.has(c.id)) { await disconnectFtp(c.id); return }
   connectingId.value = c.id
   try {
-    await invoke('remote_connect', {
-      id: c.id, protocol: c.protocol, host: c.host,
-      port: c.port, user: c.user, pass: c.pass, root: c.root,
-    })
-    connectedIds.value.add(c.id)
-    connectedIds.value = new Set(connectedIds.value)
+    await connectFtp(c)
     emit('open-conn', c.id, c.name, c.protocol)
     store.openFtpConn(c.id, c.name, c.protocol)
-    // If a tab for this connection was already open (e.g. it died mid-session
-    // and the user reconnected without closing the tab), openFtpConn() just
-    // re-focuses that same tab instead of mounting a new one — so it never
-    // reruns its own "load on mount" logic. Tell it explicitly to refresh.
-    window.dispatchEvent(new CustomEvent('ftp-connected', { detail: c.id }))
   } catch (e: any) {
     errorMsg.value = String(e)
   } finally {
@@ -111,9 +96,9 @@ async function importFileZilla() {
   try {
     const xmlText = await invoke<string>('open_file', { path })
     const doc = new DOMParser().parseFromString(xmlText, 'application/xml')
-    if (doc.querySelector('parsererror')) throw new Error('El archivo no es un XML válido')
+    if (doc.querySelector('parsererror')) throw new Error(t('pXmlBad'))
     const serversRoot = doc.querySelector('Servers')
-    if (!serversRoot) throw new Error('No se encontraron sitios (¿es un sitemanager.xml de FileZilla?)')
+    if (!serversRoot) throw new Error(t('pXmlNoSites'))
 
     const imported: FtpConn[] = []
     const walk = (el: Element, prefix: string) => {
@@ -122,7 +107,8 @@ async function importFileZilla() {
           const get = (tag: string) => child.querySelector(`:scope > ${tag}`)?.textContent?.trim() ?? ''
           const host = get('Host')
           if (!host) continue
-          const protocol: 'ftp' | 'sftp' = get('Protocol') === '1' ? 'sftp' : 'ftp'
+          const protoCode = get('Protocol')
+          const protocol: 'ftp' | 'sftp' | 'ftps' = protoCode === '1' ? 'sftp' : (protoCode === '4' || protoCode === '3') ? 'ftps' : 'ftp'
           const port = parseInt(get('Port') || '', 10) || (protocol === 'sftp' ? 22 : 21)
           const user = get('User')
           const passEl = child.querySelector(':scope > Pass')
@@ -146,7 +132,7 @@ async function importFileZilla() {
     }
     walk(serversRoot, '')
 
-    if (imported.length === 0) throw new Error('El XML no contiene conexiones válidas')
+    if (imported.length === 0) throw new Error(t('pXmlNoConn'))
     connections.value.push(...imported)
     save()
     errorMsg.value = `✓ ${imported.length} ${t('connectionsImported')}`
@@ -252,32 +238,25 @@ async function exportFileZilla() {
         </div>
         <div class="ftp-conn-actions">
           <button
-            class="ftp-action-btn"
-            :class="{ connecting: connectingId === c.id, connected: connectedIds.has(c.id) }"
+            class="ftp-pill" :class="connectedIds.has(c.id) ? 'off' : 'on'"
             @click.stop="toggleConnect(c)"
-            :title="connectedIds.has(c.id) ? t('disconnect') : t('connect')"
+            :title="connectedIds.has(c.id) ? t('pCloseConn', { name: c.name }) : t('pOpenConn', { name: c.name })"
             :disabled="connectingId === c.id"
           >
             <span v-if="connectingId === c.id" class="conn-spin" />
-            <svg v-else-if="connectedIds.has(c.id)" width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M5.5 2a3.5 3.5 0 100 7h5a3.5 3.5 0 000-7h-5zM8 3.5a2 2 0 110 4 2 2 0 010-4z"/>
-              <path d="M3 8.5a4.5 4.5 0 009 0h-1a3.5 3.5 0 01-7 0H3z"/>
-            </svg>
-            <svg v-else width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M6.354 5.5H4a3 3 0 000 6h3a3 3 0 002.83-2H9c-.001 0-.002.001-.003.002A2 2 0 017 9.5H4a2 2 0 110-4h1.535c.218-.376.495-.714.82-1z"/>
-              <path d="M9 5.5a3 3 0 012.83 2h.174c-.02.17-.03.342-.003.5H12a2 2 0 110 4H9.5a2 2 0 01-1.96-1.601A3 3 0 018.17 9.5H7a3 3 0 012-3z"/>
-            </svg>
+            <template v-else>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <template v-if="connectedIds.has(c.id)"><path d="M18.36 6.64a9 9 0 11-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></template>
+                <template v-else><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></template>
+              </svg>
+              {{ connectedIds.has(c.id) ? 'Desconectar' : 'Conectar' }}
+            </template>
           </button>
-          <button class="ftp-action-btn" @click.stop="openEditForm(c)" :title="t('edit')">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M12.854.146a.5.5 0 00-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 000-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 01.5.5v.5h.5a.5.5 0 01.5.5v.5h.5a.5.5 0 01.5.5v.5h.5a.5.5 0 01.5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 015.5 14H5v-.5a.5.5 0 01-.5-.5H4v-.5a.5.5 0 01-.5-.5H3v-.5a.5.5 0 01-.5-.5H2.5v-.5a.5.5 0 01.646-.473l.853.214 1.832-1.832 3.709 3.709-1.832 1.832.214.853z"/>
-            </svg>
+          <button class="ftp-icon-btn" @click.stop="openEditForm(c)" :title="t('pEditConn')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
           </button>
-          <button class="ftp-action-btn ftp-action-del" @click.stop="removeConn(c.id)" :title="t('delete')">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
-              <path fill-rule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 010-2h4a1 1 0 011-1h2a1 1 0 011 1h4a1 1 0 011 1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3a.5.5 0 000 1h11a.5.5 0 000-1h-11z"/>
-            </svg>
+          <button class="ftp-icon-btn danger" @click.stop="removeConn(c.id)" :title="t('pDelConn')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
           </button>
         </div>
       </div>
@@ -297,7 +276,12 @@ async function exportFileZilla() {
             @click="form.protocol = 'sftp'; onProtocolChange()">SFTP</button>
           <button class="ftp-proto-btn" :class="{ active: form.protocol === 'ftp' }"
             @click="form.protocol = 'ftp'; onProtocolChange()">FTP</button>
+          <button class="ftp-proto-btn" :class="{ active: form.protocol === 'ftps' }"
+            @click="form.protocol = 'ftps'; onProtocolChange()">FTPS</button>
         </div>
+        <div v-if="form.protocol === 'ftp'" class="ftp-form-error">{{ t('pPlainWarn') }}</div>
+        <div v-else-if="form.protocol === 'ftps'" class="ftp-form-note">{{ t('pFtpsNote') }}</div>
+        <div v-if="keychainBlocked" class="ftp-form-error">{{ t('pNoKeychain') }}</div>
 
         <div class="ftp-row2">
           <div>
@@ -412,7 +396,14 @@ async function exportFileZilla() {
 .ftp-conn-live { font-size: 9px; font-weight: 700; color: var(--green); letter-spacing: 0.3px; flex-shrink: 0; }
 .ftp-conn-host { font-size: 10.5px; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 
-.ftp-conn-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.ftp-conn-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.ftp-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 12px; border: 1px solid; background: none; cursor: pointer; white-space: nowrap; }
+.ftp-pill.on { color: #3fb950; border-color: #3fb95066; } .ftp-pill.on:hover { background: #3fb95022; }
+.ftp-pill.off { color: #f0883e; border-color: #f0883e66; } .ftp-pill.off:hover { background: #f0883e22; }
+.ftp-pill:disabled { opacity: .5; cursor: default; }
+.ftp-icon-btn { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid transparent; border-radius: 6px; color: var(--fg); opacity: .8; cursor: pointer; }
+.ftp-icon-btn:hover { background: var(--bg-active); border-color: var(--border); opacity: 1; }
+.ftp-icon-btn.danger:hover { color: #f85149; border-color: #f8514966; background: #f8514914; }
 .ftp-action-btn {
   width: 22px; height: 22px; background: none; border: none;
   border-radius: 4px; color: var(--fg-muted); cursor: pointer;
@@ -462,6 +453,7 @@ async function exportFileZilla() {
   background: rgba(208,208,216,0.15); border-color: var(--accent);
   color: var(--accent); font-weight: 600;
 }
+.ftp-form-note { font-size: 11px; color: #3fb950; margin: 4px 0; }
 .ftp-form-error {
   font-size: 11px; color: #f85149; padding: 6px 8px;
   background: rgba(248,81,73,0.1); border-radius: 5px;

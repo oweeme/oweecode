@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { useEditorStore } from '../composables/useEditorStore'
 import { useI18n } from '../composables/useI18n'
+import { invoke } from '@tauri-apps/api/core'
+import { generateClient, CLIENT_LANGS, type ClientLang } from '../composables/apiClientGen'
 
 const { t } = useI18n()
 
@@ -63,6 +65,34 @@ function addCollection() {
   saveCollections()
   newCollName.value = ''
   addCollModal.value = false
+}
+
+// Generate an API client (Qt C++ / QML / TypeScript) from a collection
+const genModal = ref<{ collId: string } | null>(null)
+const genLang = ref<ClientLang>('ts')
+const genMsg = ref('')
+function openGenerate() {
+  if (!ctx.value) return
+  genModal.value = { collId: ctx.value.collId }
+  genMsg.value = ''
+  closeCtx()
+}
+async function runGenerate() {
+  const coll = collections.value.find(c => c.id === genModal.value?.collId)
+  const root = store.state.rootPath
+  if (!coll || !coll.requests.length) { genMsg.value = t('aNoReq'); return }
+  if (!root) { genMsg.value = t('aOpenFirst'); return }
+  try {
+    const files = generateClient(coll, genLang.value)
+    for (const f of files) {
+      const full = `${root}/${f.path}`
+      await invoke('create_dir_cmd', { path: full.split('/').slice(0, -1).join('/') })
+      await invoke('save_file', { path: full, content: f.content })
+    }
+    store.openFile(`${root}/${files[0].path}`)
+    genMsg.value = t('aDone', { files: files.map(f => f.path).join(', ') })
+    setTimeout(() => { genModal.value = null }, 1200)
+  } catch (e) { genMsg.value = t('aErr', { e: String(e) }) }
 }
 
 // Context menu
@@ -284,10 +314,24 @@ const methodColor: Record<string, string> = {
 
     <!-- Context menu -->
     <Teleport to="body">
+      <div v-if="genModal" class="modal-overlay" @click.self="genModal = null">
+        <div class="modal-box">
+          <div class="modal-title">{{ t('aGenTitle') }}</div>
+          <label v-for="l in CLIENT_LANGS" :key="l.key" class="gen-opt">
+            <input type="radio" :value="l.key" v-model="genLang" /> <span><b>{{ l.label }}</b><small>{{ l.hint }}</small></span>
+          </label>
+          <div v-if="genMsg" class="gen-msg">{{ genMsg }}</div>
+          <div class="modal-actions">
+            <button class="modal-cancel" @click="genModal = null">{{ t('cancel') }}</button>
+            <button class="modal-confirm" @click="runGenerate">{{ t('aGenBtn') }}</button>
+          </div>
+        </div>
+      </div>
       <div v-if="ctx" class="ctx-menu" :style="{ left: ctx.x + 'px', top: ctx.y + 'px' }" @click.stop>
         <template v-if="ctx.type === 'coll'">
           <button class="ctx-item" @click="newRequestFromCtx">+ {{ t('newRequest2') }}</button>
           <button class="ctx-item" @click="startRename">{{ t('rename') }}</button>
+          <button class="ctx-item" @click="openGenerate">{{ t('aGenMenu') }}</button>
           <div class="ctx-sep" />
           <button class="ctx-item ctx-danger" @click="deleteItem">{{ t('deleteCollection') }}</button>
         </template>
@@ -405,6 +449,9 @@ const methodColor: Record<string, string> = {
 }
 .modal-input:focus { border-color: var(--accent); }
 .modal-actions { display: flex; gap: 8px; }
+.gen-opt { display: flex; gap: 8px; align-items: flex-start; padding: 6px 2px; font-size: 12px; color: var(--fg); cursor: pointer; }
+.gen-opt small { display: block; font-size: 10.5px; color: var(--fg-muted); }
+.gen-msg { font-size: 11px; color: var(--accent); margin: 6px 0; word-break: break-word; }
 .modal-cancel {
   flex: 1; background: var(--bg-hover); border: 1px solid var(--border);
   border-radius: 6px; color: var(--fg); font-size: 12px; font-weight: 600;

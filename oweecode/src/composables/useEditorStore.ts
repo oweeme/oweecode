@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 
-export type TabType = 'code' | 'image' | 'database' | 'ftp' | 'api' | 'ftp-file' | 'cli' | 'redis' | 'git-diff' | 'er-diagram' | 'container-logs' | 'container-shell' | 'browser' | 'design' | 'agent'
+export type TabType = 'code' | 'image' | 'database' | 'ftp' | 'api' | 'ftp-file' | 'cli' | 'redis' | 'git-diff' | 'er-diagram' | 'container-logs' | 'container-shell' | 'browser' | 'design' | 'flow' | 'agent'
 
 export interface Tab {
   path: string
@@ -72,6 +72,7 @@ function detectLanguage(filename: string): string {
     'dockerfile': 'shell', 'makefile': 'shell', 'gemfile': 'ruby',
     '.gitignore': 'shell', '.gitattributes': 'text', '.editorconfig': 'toml',
     '.npmrc': 'toml', '.yarnrc': 'yaml',
+    'cmakelists.txt': 'shell', 'meson.build': 'python', 'meson_options.txt': 'python', 'qmldir': 'text', 'gradlew': 'shell', 'gradle.properties': 'properties', 'local.properties': 'properties', 'proguard-rules.pro': 'text',
   }
   const lower = filename.toLowerCase()
   if (exactMap[lower]) return exactMap[lower]
@@ -90,6 +91,11 @@ function detectLanguage(filename: string): string {
     css: 'css', scss: 'css', sass: 'css',
     json: 'json', jsonc: 'json', json5: 'json', md: 'markdown',
     rs: 'rust', py: 'python', dart: 'dart',
+    // Godot
+    gd: 'gdscript', tscn: 'godotscene', tres: 'godotscene', godot: 'godotscene', gdshader: 'cpp',
+    // Android / mobile / Qt
+    kt: 'kotlin', kts: 'kotlin', java: 'java', aidl: 'java', gradle: 'groovy', groovy: 'groovy',
+    swift: 'swift', cs: 'csharp', qml: 'qml', properties: 'properties', pro: 'shell', pri: 'shell', cmake: 'shell', ui: 'xml', qrc: 'xml', vala: 'vala', vapi: 'vala', blp: 'blueprint', gresource: 'xml', gschema: 'xml', cxx: 'cpp', hh: 'cpp', ipp: 'cpp',
     ada: 'ada', adb: 'ada', ads: 'ada',
     sql: 'sql', sh: 'shell', bash: 'shell', zsh: 'shell',
     toml: 'toml', yaml: 'yaml', yml: 'yaml',
@@ -139,7 +145,7 @@ export function useEditorStore() {
       tab.modified = false
       return
     }
-    if (tab.type === 'api' || tab.type === 'database' || tab.type === 'ftp' || tab.type === 'redis' || tab.type === 'cli' || tab.type === 'git-diff' || tab.type === 'er-diagram' || tab.type === 'container-logs' || tab.type === 'browser' || tab.type === 'design' || tab.type === 'agent') return
+    if (tab.type === 'api' || tab.type === 'database' || tab.type === 'ftp' || tab.type === 'redis' || tab.type === 'cli' || tab.type === 'git-diff' || tab.type === 'er-diagram' || tab.type === 'container-logs' || tab.type === 'browser' || tab.type === 'design' || tab.type === 'flow' || tab.type === 'agent') return
     await invoke('save_file', { path, content: tab.content })
     tab.modified = false
     window.dispatchEvent(new CustomEvent('file-saved'))
@@ -286,7 +292,7 @@ export function useEditorStore() {
     state.tabs.push({
       path, name: `${browserTabCounter > 1 ? `Navegador ${browserTabCounter}` : 'Navegador'}`,
       content: '', modified: false, language: 'text',
-      type: 'browser', browserUrl: url || 'http://localhost:3000',
+      type: 'browser', browserUrl: url ?? '',   // empty: the preview looks for a running server itself
     })
     state.activeTabPath = path
   }
@@ -303,6 +309,15 @@ export function useEditorStore() {
       content: '', modified: false, language: 'text',
       type: 'design',
     })
+    state.activeTabPath = path
+  }
+
+  // One Flows tab per project: it holds the flow designer and the project map.
+  function openFlowTab() {
+    const path = 'flow://main'
+    if (!state.tabs.find(t => t.path === path)) {
+      state.tabs.push({ path, name: 'Flujos', content: '', modified: false, language: 'text', type: 'flow' })
+    }
     state.activeTabPath = path
   }
 
@@ -338,5 +353,5 @@ export function useEditorStore() {
     toClose.forEach(t => closeTab(t.path))
   }
 
-  return { state, activeTab, setRootPath, openFile, saveFile, saveActiveFile, updateContent, closeTab, closeTabByPath, renameTab, setActive, setCursor, setSelectedText, openDbTable, openNewTable, tabTableCreated, openFtpConn, openFtpFile, openApiRequest, openCliTab, openAgentTab, openRedisConn, openGitDiff, openErDiagram, openContainerLogs, openContainerShell, openBrowserTab, openDesignTab }
+  return { state, activeTab, setRootPath, openFile, saveFile, saveActiveFile, updateContent, closeTab, closeTabByPath, renameTab, setActive, setCursor, setSelectedText, openDbTable, openNewTable, tabTableCreated, openFtpConn, openFtpFile, openApiRequest, openCliTab, openAgentTab, openRedisConn, openGitDiff, openErDiagram, openContainerLogs, openContainerShell, openBrowserTab, openDesignTab, openFlowTab }
 }

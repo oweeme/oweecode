@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import { useI18n, type Locale } from '../composables/useI18n'
+import { rustText } from '../composables/rustText'
 import { useAppTheme } from '../composables/useAppTheme'
 import OllamaSetup from './OllamaSetup.vue'
 import PodmanSetup from './PodmanSetup.vue'
@@ -13,7 +15,7 @@ const { theme, setTheme } = useAppTheme()
 const showOllamaSetup = ref(false)
 const showPodmanSetup = ref(false)
 
-const { state: updaterState, checkForUpdates } = useAppUpdater()
+const { state: updaterState, checkForUpdates, installUpdate } = useAppUpdater()
 const appVersion = ref('')
 getVersion().then(v => { appVersion.value = v }).catch(() => {})
 
@@ -53,8 +55,43 @@ const LSP_LANGS = [
   { key: 'go',         label: 'Go',                      server: 'gopls',                       install: 'go install golang.org/x/tools/gopls@latest' },
   { key: 'rust',       label: 'Rust',                    server: 'rust-analyzer',               install: 'rustup component add rust-analyzer' },
   { key: 'php',        label: 'PHP',                     server: 'phpactor',                    install: 'composer global require phpactor/phpactor' },
-  { key: 'python',     label: 'Python',                  server: 'pylsp',                       install: 'pip install python-lsp-server' },
+  { key: 'python',     label: 'Python',                  server: 'pylsp',                       install: 'pipx install python-lsp-server' },
+  { key: 'dart',       label: 'Dart / Flutter',          server: 'dart',                        install: 'SDK de Flutter o Dart (incluye el servidor)' },
+  { key: 'cpp',        label: 'C / C++ (Qt)',            server: 'clangd',                      install: 'sudo apt install clangd  (+ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)' },
+  { key: 'qml',        label: 'QML (Qt 6.3+)',           server: 'qmlls',                       install: 'viene con Qt (~/Qt/<versión>/<kit>/bin)' },
+  { key: 'kotlin',     label: 'Kotlin (Android)',        server: 'kotlin-language-server',      install: 'github.com/fwcd/kotlin-language-server/releases' },
 ]
+// Which language servers / Ollama are really installed (resolved by the backend with the user's shell PATH)
+const lspInstalled = ref<Record<string, string | null> | null>(null)
+const ollamaInstalled = ref<boolean | null>(null)
+async function checkInstalled() {
+  lspInstalled.value = null
+  ollamaInstalled.value = null
+  try { lspInstalled.value = await invoke<Record<string, string | null>>('lsp_check_installed') } catch { lspInstalled.value = {} }
+  try { ollamaInstalled.value = (await invoke<{ installed: boolean }>('ollama_check_installed')).installed } catch { ollamaInstalled.value = false }
+}
+onMounted(checkInstalled)
+
+// One-click install / update of each language server (always the latest, except
+// Vue which stays on the 1.x line this editor integration supports).
+const installingId = ref<string | null>(null)
+const installLog = ref('')
+const installOk = ref<boolean | null>(null)
+async function installTool(id: string) {
+  installingId.value = id
+  installLog.value = t('tInstalling')
+  installOk.value = null
+  try {
+    installLog.value = await invoke<string>('install_dev_tool', { id })
+    installOk.value = true
+  } catch (e: any) {
+    installLog.value = String(e)
+    installOk.value = false
+  } finally {
+    installingId.value = null
+    checkInstalled()
+  }
+}
 function lspKey(lang: string) { return `lsp_enabled_${lang}` }
 const lspEnabled = ref<Record<string, boolean>>(
   Object.fromEntries(LSP_LANGS.map(l => [l.key, localStorage.getItem(lspKey(l.key)) === 'true']))
@@ -235,26 +272,34 @@ function reset() {
         <div class="lsp-note" v-html="t('prefsLspNote')" />
         <div v-for="lang in LSP_LANGS" :key="lang.key" class="lsp-row">
           <div class="lsp-info">
-            <span class="lsp-label">{{ lang.label }}</span>
-            <code class="lsp-cmd">{{ lang.install }}</code>
+            <span class="lsp-label">{{ lang.label }}
+              <span v-if="lspInstalled === null" class="lsp-status">…</span>
+              <span v-else-if="lspInstalled[lang.key]" class="lsp-status ok" :title="lspInstalled[lang.key] || ''">{{ t('tInstalled') }}</span>
+              <span v-else class="lsp-status missing">{{ t('tMissing') }}</span>
+            </span>
+            <code class="lsp-cmd">{{ lspInstalled && lspInstalled[lang.key] ? lspInstalled[lang.key] : rustText(lang.install, locale) }}</code>
           </div>
+          <button class="lsp-install-btn" :disabled="installingId !== null" @click="installTool(lang.key)">
+            {{ installingId === lang.key ? '…' : (lspInstalled && lspInstalled[lang.key] ? t('tUpdate') : t('tInstall')) }}
+          </button>
           <button class="pref-toggle" :class="{ on: lspEnabled[lang.key] }" @click="lspEnabled[lang.key] = !lspEnabled[lang.key]">
             <span class="pref-toggle-knob" />
           </button>
         </div>
 
+        <button class="pref-ollama-btn" @click="checkInstalled">{{ t('tRedetect') }}</button>
+        <button class="pref-ollama-btn" :disabled="installingId !== null" @click="installTool('node')">{{ t('tUpdateNode') }}</button>
+        <pre v-if="installLog" class="install-log" :class="{ err: installOk === false }">{{ installLog }}</pre>
+
         <!-- Local AI (Ollama) section -->
-        <div class="pref-section-label" style="margin-top:18px">AGENTE IA LOCAL</div>
-        <p class="lsp-note">
-          El modo Agente y el modelo local corren con <strong>Ollama</strong>, gratis y 100% privado — no viene incluido en la app, cada persona lo instala en su máquina la primera vez que quiere usarlo, sea Windows, macOS o Linux.
-        </p>
-        <button class="pref-ollama-btn" @click="showOllamaSetup = true">⚙ Instalar Ollama / descargar modelos</button>
+        <div class="pref-section-label" style="margin-top:18px">{{ t('tLocalAi') }}</div>
+        <p class="lsp-note" v-html="t('tOllamaNote')" />
+        <p class="lsp-note" v-if="ollamaInstalled !== null">Ollama: <strong>{{ ollamaInstalled ? t('tInst') : t('tNotFound') }}</strong></p>
+        <button class="pref-ollama-btn" @click="showOllamaSetup = true">{{ t('tOllamaBtn') }}</button>
 
         <!-- Podman (containers/pods) section -->
-        <div class="pref-section-label" style="margin-top:18px">CONTENEDORES Y PODS</div>
-        <p class="lsp-note">
-          Crear contenedores y pods necesita <strong>Podman</strong> instalado en tu máquina — tampoco viene incluido en la app.
-        </p>
+        <div class="pref-section-label" style="margin-top:18px">{{ t('tContainers') }}</div>
+        <p class="lsp-note" v-html="t('tPodmanNote')" />
         <button class="pref-ollama-btn" @click="showPodmanSetup = true">⚙ {{ t('installPodmanTitle') }}</button>
 
         <!-- App updates -->
@@ -263,7 +308,12 @@ function reset() {
         <div v-if="updaterState.available" class="lsp-note" style="color:var(--accent)">
           ✓ {{ t('updateAvailable') }} v{{ updaterState.version }}
         </div>
-        <div v-else-if="updaterState.error" class="lsp-note" style="color:#f85149">{{ updaterState.error }}</div>
+        <div v-else-if="updaterState.error" class="lsp-note" style="color:#f85149">{{ t('tUpdErr', { e: updaterState.error }) }}</div>
+        <div v-else-if="updaterState.upToDate" class="lsp-note" style="color:#3fb950">{{ t('tUpToDate') }}</div>
+        <button v-if="updaterState.available" class="pref-ollama-btn" :disabled="updaterState.downloading" @click="installUpdate">
+          {{ updaterState.downloading ? t('tDownloading', { p: updaterState.progress }) : t('tInstallNow') }}
+        </button>
+        <div v-if="updaterState.manualUpdateUrl" class="lsp-note">{{ t('tDebNote') }} <a :href="updaterState.manualUpdateUrl" target="_blank" style="color:var(--accent)">{{ t('tDlGithub') }}</a></div>
         <button class="pref-ollama-btn" :disabled="updaterState.checking" @click="checkForUpdates">
           {{ updaterState.checking ? t('checkingUpdates') : t('checkForUpdates') }}
         </button>
@@ -451,6 +501,14 @@ function reset() {
   padding: 7px 0;
   border-bottom: 1px solid var(--border);
 }
+.lsp-status { margin-left: 8px; font-size: 10px; color: var(--fg-muted); }
+.lsp-status.ok { color: #3fb950; }
+.lsp-status.missing { color: #f0883e; }
+.lsp-install-btn { font-size: 11px; padding: 3px 9px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-hover); color: var(--fg); cursor: pointer; }
+.lsp-install-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.lsp-install-btn:disabled { opacity: 0.5; cursor: default; }
+.install-log { max-height: 140px; overflow: auto; font-size: 10px; background: var(--bg-darkest); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; margin: 6px 0; white-space: pre-wrap; color: var(--fg-muted); user-select: text; }
+.install-log.err { color: #f85149; }
 .lsp-info { flex: 1; min-width: 0; }
 .lsp-label { display: block; font-size: 12px; color: var(--fg); margin-bottom: 2px; }
 .lsp-cmd {

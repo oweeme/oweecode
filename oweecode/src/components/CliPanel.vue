@@ -328,8 +328,8 @@ async function sendFileContext() {
   if (!tab || tab.type !== 'code') return
   const sel = store.state.selectedText.trim()
   const text = sel
-    ? `Mira este código seleccionado de ${tab.name}:\n\`\`\`${tab.language}\n${sel}\n\`\`\``
-    : `Mira este archivo ${tab.name}:\n\`\`\`${tab.language}\n${tab.content.slice(0, 2000)}\n\`\`\``
+    ? `${t('cLook', { name: tab.name })}\n\`\`\`${tab.language}\n${sel}\n\`\`\``
+    : `${t('cLookFile', { name: tab.name })}\n\`\`\`${tab.language}\n${tab.content.slice(0, 2000)}\n\`\`\``
   // Type it into the terminal (the CLI reads stdin)
   invoke('pty_write', { id: sessionId, data: text }).catch(() => {})
   xterm?.focus()
@@ -394,7 +394,7 @@ async function sendFileContext() {
         <label>{{ AI_PROVIDERS[aiderProvider].keyLabel }}</label>
         <input v-model="aiderApiKey" type="password" class="cli-aider-input" :placeholder="AI_PROVIDERS[aiderProvider].keyPlaceholder" />
       </div>
-      <p class="cli-aider-hint">Independiente del panel de Chat — cada CLI puede usar su propio modelo sin perder el contexto del proyecto actual.</p>
+      <p class="cli-aider-hint">{{ t('cAiderHint') }}</p>
       <button class="cli-install-btn" :style="{ background: meta.color }" @click="saveAiderConfig">Guardar {{ isRunning ? '(reinicia Aider)' : '' }}</button>
     </div>
 

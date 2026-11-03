@@ -453,14 +453,35 @@ function onGlobalKey(e: KeyboardEvent) {
 onMounted(() => window.addEventListener('keydown', onGlobalKey))
 onUnmounted(() => window.removeEventListener('keydown', onGlobalKey))
 
-async function refreshTree() {
-  const fresh = await loadDir(store.state.rootPath)
-  const map = new Map(tree.value.map(n => [n.path, n]))
-  tree.value = fresh.map(n => {
+// Reloads the root and, recursively, every folder that is currently expanded,
+// so files created/changed outside the app show up while keeping the open state.
+async function reloadNodes(path: string, old: TreeNodeData[] | undefined): Promise<TreeNodeData[]> {
+  const fresh = await loadDir(path)
+  const map = new Map((old ?? []).map(n => [n.path, n]))
+  return Promise.all(fresh.map(async n => {
     const ex = map.get(n.path)
-    return ex ? { ...n, expanded: ex.expanded, children: ex.children, loaded: ex.loaded } : n
-  })
+    if (!ex || !n.is_dir || !ex.expanded) return n
+    return { ...n, expanded: true, loaded: true, children: await reloadNodes(n.path, ex.children) }
+  }))
 }
+
+async function refreshTree() {
+  if (!store.state.rootPath) return
+  try { tree.value = await reloadNodes(store.state.rootPath, tree.value) } catch (e) { console.error('refresh', e) }
+}
+
+// Refresh automatically when the window regains focus, and on F5 / Ctrl+R.
+let lastFocusRefresh = 0
+function onWinFocus() {
+  if (Date.now() - lastFocusRefresh < 2000) return
+  lastFocusRefresh = Date.now()
+  refreshTree()
+}
+function onRefreshKey(e: KeyboardEvent) {
+  if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 'r')) { e.preventDefault(); refreshTree() }
+}
+onMounted(() => { window.addEventListener('focus', onWinFocus); window.addEventListener('keydown', onRefreshKey) })
+onUnmounted(() => { window.removeEventListener('focus', onWinFocus); window.removeEventListener('keydown', onRefreshKey) })
 </script>
 
 <template>

@@ -12,7 +12,7 @@
 [![Plataforma](https://img.shields.io/badge/plataforma-Linux%20%7C%20Windows%20%7C%20macOS-blue)](https://github.com/oweeme/oweecode/releases/latest)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
 
-[⬇️ Descargar](#instalación) · [✨ Características](#características) · [📖 Manual de uso](#manual-de-uso) · [🌐 oweeme.com](https://oweeme.com)
+[🌐 Página web](https://oweeme.github.io/oweecode/) · [⬇️ Descargar](#instalación) · [✨ Características](#características) · [📖 Manual de uso](#manual-de-uso) · [🌐 oweeme.com](https://oweeme.com)
 
 </div>
 
@@ -23,6 +23,19 @@
 OweeCode es un entorno de desarrollo integrado (IDE) de escritorio creado por **Héctor Martínez** ([oweeme.com](https://oweeme.com)), pensado para las necesidades reales del desarrollador moderno. Construido con **Tauri 2**, **Vue 3** y **Rust**, combina la velocidad nativa de las aplicaciones de escritorio con la flexibilidad del ecosistema web.
 
 A diferencia de editores pesados que consumen gigabytes de RAM, OweeCode es **ligero, rápido y tiene todo lo que necesitas** sin plugins adicionales: editor, terminal, base de datos, FTP, cliente API y asistente de IA — todo integrado.
+
+---
+
+## Novedades de la 1.5.0
+
+- 🌐 **Navegador con proyectos:** detecta servidores en cualquier puerto, arranca los de tu proyecto, vista dividida, recarga en vivo y favoritos.
+- 📡 **FTP como FileZilla:** teclado, cola de transferencias, confirmación al sobrescribir y **sincronización de carpetas**; SFTP/FTPS verificados.
+- 🔀 **Flujos de negocio** ejecutables con scripts en cualquier lenguaje, con datos de ejemplo y código base.
+- 🎨 **Diseño visual** de Quasar/Vue/HTML y de **interfaces nativas Qt · QML · GTK**.
+- 📱 Diagnóstico para Capacitor, Android, Flutter, Qt, GTK y Godot.
+- 🌍 Interfaz en 8 idiomas y pantalla de carga con el logo.
+
+Detalle completo en el [CHANGELOG](CHANGELOG.md).
 
 ---
 

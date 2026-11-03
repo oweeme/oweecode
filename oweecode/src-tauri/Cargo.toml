@@ -1,6 +1,6 @@
 [package]
 name = "oweecode"
-version = "1.4.2"
+version = "1.5.0"
 description = "OweeCode — IDE de desarrollo creado por Héctor Martínez (oweeme.com)"
 authors = ["Héctor Martínez <hector@oweeme.com>"]
 homepage = "https://oweeme.com"
@@ -39,14 +39,20 @@ rust_decimal = "1"
 uuid = { version = "1", features = ["v4"] }
 chrono = "0.4"
 ssh2 = "0.9"
-suppaftp = { version = "5", default-features = false }
+suppaftp = { version = "5", default-features = false, features = ["native-tls"] }
+native-tls = "0.2"
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 redis = { version = "0.27", features = ["tokio-comp"] }
 md5 = "0.7"
 sha1 = "0.10"
 sha2 = "0.10"
 bcrypt = "0.15"
 argon2 = "0.5"
+regex = "1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }

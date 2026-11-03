@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
+import ProjectDoctor from './ProjectDoctor.vue'
 import { useEditorStore } from '../composables/useEditorStore'
 import { useI18n } from '../composables/useI18n'
+import { rustText } from '../composables/rustText'
 
 const store = useEditorStore()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const rt = (s: string) => rustText(s, locale.value)
 
 const activeTab = computed(() => store.activeTab())
 const langLabel = computed(() => {
@@ -16,6 +20,7 @@ const langLabel = computed(() => {
     css: 'CSS', json: 'JSON', markdown: 'Markdown',
     rust: 'Rust', python: 'Python', sql: 'SQL', cpp: 'C++',
     shell: 'Shell', yaml: 'YAML', toml: 'TOML', xml: 'XML',
+    kotlin: 'Kotlin', java: 'Java', groovy: 'Gradle (Groovy)', swift: 'Swift', csharp: 'C#', dart: 'Dart', qml: 'QML', vala: 'Vala (GTK)', gdscript: 'GDScript (Godot)', godotscene: 'Godot escena', blueprint: 'Blueprint (GTK)', properties: 'Properties',
     text: 'Plain Text', image: 'Image',
   }
   return labels[lang] ?? lang
@@ -35,6 +40,34 @@ const aiModel = computed(() => {
 const aiProviderIcon: Record<string, string> = {
   claude: '◆', deepseek: '◈', gemini: '◈', openai: '⬡', ollama: '⬡'
 }
+
+// Mobile / Android helper: detects Capacitor, Flutter, native Android, Qt… and offers ready-made commands
+interface MobileInfo { kinds: { kind: string; label: string; commands: { label: string; cmd: string }[] }[]; tools: Record<string, string | null> }
+const mobile = ref<MobileInfo | null>(null)
+const showMobile = ref(false)
+const showDoctor = ref(false)
+async function detectMobile() {
+  const root = store.state.rootPath
+  mobile.value = null
+  if (!root) return
+  try { const m = await invoke<MobileInfo>('detect_mobile_project', { root }); mobile.value = m.kinds.length ? m : null } catch { mobile.value = null }
+}
+watch(() => store.state.rootPath, detectMobile)
+onMounted(detectMobile)
+function runMobile(cmd: string) { showMobile.value = false; window.dispatchEvent(new CustomEvent('owee-run', { detail: cmd })) }
+const TOOL_LABELS = computed<[string, string][]>(() => {
+  const ks = mobile.value?.kinds.map(k => k.kind) ?? []
+  const l: [string, string][] = []
+  if (ks.some(k => ['android', 'capacitor', 'rn', 'flutter', 'tauri'].includes(k))) l.push(['adb', 'adb'], ['java', 'Java'], ['ANDROID_HOME', 'Android SDK'])
+  if (ks.includes('android')) l.push(['gradle', 'Gradle'])
+  if (ks.includes('flutter')) l.push(['flutter', 'Flutter'])
+  if (ks.includes('capacitor')) l.push(['npx', 'npx'])
+  if (ks.includes('godot')) l.push(['godot', 'Godot'])
+  if (ks.includes('pyside')) l.push(['python3', 'Python'], ['pyside6-designer', 'Qt Designer'], ['pyside6-uic', 'pyside6-uic'])
+  if (ks.includes('gtk')) l.push(['python3', 'Python'], ['meson', 'Meson'], ['gtk4-builder-tool', 'gtk4-builder-tool'], ['blueprint-compiler', 'Blueprint'])
+  if (ks.includes('qt')) l.push(['cmake', 'CMake'], ['ninja', 'Ninja'], ['qmake6', 'qmake6'], ['qt-cmake', 'qt-cmake'], ['clangd', 'clangd'], ['qmlls', 'qmlls'])
+  return l
+})
 
 const lspStatusIcon = computed(() => {
   switch (store.state.lspStatus) {
@@ -73,6 +106,22 @@ const lspStatusTitle = computed(() => {
       <span v-else-if="tabType === 'api'" class="statusbar-item statusbar-item--api">
         ⚡ API Client
       </span>
+
+      <span v-if="mobile" class="statusbar-item statusbar-item--mobile" :title="t('sMobileTip')" @click="showMobile = !showMobile">
+        🛠 {{ mobile.kinds.map(k => rt(k.label)).join(' + ') }}
+      </span>
+      <div v-if="showMobile && mobile" class="mobile-pop" @mouseleave="showMobile = false">
+        <div v-for="k in mobile.kinds" :key="k.kind" class="mobile-group">
+          <div class="mobile-title">{{ rt(k.label) }}</div>
+          <button v-for="c in k.commands" :key="c.cmd" class="mobile-cmd" @click="runMobile(c.cmd)"><span>{{ rt(c.label) }}</span><code>{{ c.cmd }}</code></button>
+        </div>
+        <button class="mobile-cmd" style="margin-top:6px" @click="showMobile = false; showDoctor = true"><span>{{ t('sDoctor') }}</span><code>{{ t('sDoctorSub') }}</code></button>
+        <div class="mobile-tools">
+          <span v-for="[key, label] in TOOL_LABELS" :key="key" :class="mobile.tools[key] ? 'ok' : 'miss'" :title="mobile.tools[key] || t('sNotFound')">{{ mobile.tools[key] ? '✓' : '✗' }} {{ label }}</span>
+        </div>
+      </div>
+
+      <ProjectDoctor v-if="showDoctor" @close="showDoctor = false" />
 
       <!-- Git placeholder (future: branch info) -->
       <span v-if="store.state.rootPath" class="statusbar-item statusbar-item--path" :title="store.state.rootPath">
@@ -159,4 +208,15 @@ const lspStatusTitle = computed(() => {
 .statusbar-item--lsp-starting { color: var(--yellow); }
 .statusbar-item--lsp-ready { color: var(--green); }
 .statusbar-item--lsp-error { color: var(--red); }
+
+.statusbar-item--mobile { cursor: pointer; color: #3ddc84; }
+.statusbar-item--mobile:hover { text-decoration: underline; }
+.mobile-pop { position: fixed; bottom: 24px; left: 80px; z-index: 300; width: 430px; max-height: 70vh; overflow: auto; background: var(--bg-dark, #141416); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 6px; }
+.mobile-title { font-size: 11px; font-weight: 600; color: var(--fg-bright, #fff); padding: 6px 8px 2px; }
+.mobile-cmd { display: flex; justify-content: space-between; gap: 10px; width: 100%; background: none; border: none; color: var(--fg); font-size: 12px; padding: 4px 8px; border-radius: 4px; cursor: pointer; text-align: left; }
+.mobile-cmd:hover { background: var(--bg-hover); }
+.mobile-cmd code { font-size: 10px; color: var(--fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.mobile-tools { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px; border-top: 1px solid var(--border); margin-top: 6px; font-size: 11px; }
+.mobile-tools .ok { color: #3fb950; }
+.mobile-tools .miss { color: #f0883e; }
 </style>

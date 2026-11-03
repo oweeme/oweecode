@@ -18,7 +18,7 @@ use crate::filesystem::{self, FileEntry, SearchHit};
 /// exist yet — only the longest existing ancestor is canonicalized, then the
 /// remaining (not-yet-created) components are appended back on, so writing a
 /// brand-new file still gets checked correctly.
-fn confine(root: &str, target: &str) -> Result<PathBuf, String> {
+pub(crate) fn confine(root: &str, target: &str) -> Result<PathBuf, String> {
     let root_canon = Path::new(root)
         .canonicalize()
         .map_err(|e| format!("Root de proyecto inválido: {}", e))?;
@@ -168,7 +168,11 @@ pub struct OllamaStatus {
 
 #[tauri::command]
 pub async fn ollama_check_installed() -> OllamaStatus {
-    let mut cmd = tokio::process::Command::new("ollama");
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    let ollama_bin = crate::util::find_binary("ollama").await.unwrap_or_else(|| "ollama".to_string());
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    let ollama_bin = "ollama".to_string();
+    let mut cmd = tokio::process::Command::new(ollama_bin);
     cmd.arg("--version");
     #[cfg(any(target_os = "macos", target_os = "linux"))]
     if let Some(p) = crate::util::resolve_login_shell_path().await {

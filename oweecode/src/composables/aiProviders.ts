@@ -3,6 +3,8 @@
 // so both pick from the same list and the same saved key — one key per
 // provider, reused everywhere that provider is selected, so setting it once
 // in either place is enough.
+import { invoke } from '@tauri-apps/api/core'
+
 export type Provider = 'deepseek' | 'claude' | 'openai' | 'gemini' | 'ollama' | 'groq' | 'openrouter'
 
 export interface ProviderInfo {
@@ -102,12 +104,38 @@ export const AI_PROVIDERS: Record<Provider, ProviderInfo> = {
   },
 }
 
+// API keys live in the OS keychain (secret_* commands), not in localStorage.
+// Reads stay synchronous through an in-memory cache that is filled once at
+// startup (`aiKeysReady`); keys an older version left in localStorage are moved
+// into the keychain the first time. If the keychain isn't available the old
+// localStorage behaviour is kept so the key is never lost.
+const keyCache: Partial<Record<Provider, string>> = {}
+const KEY_PROVIDERS = Object.keys(AI_PROVIDERS).filter(p => p !== 'ollama') as Provider[]
+
+export const aiKeysReady: Promise<void> = (async () => {
+  for (const p of KEY_PROVIDERS) {
+    const legacy = localStorage.getItem(`ai_key_${p}`) ?? ''
+    try {
+      const stored = await invoke<string | null>('secret_get', { key: `ai:${p}` })
+      if (stored) { keyCache[p] = stored; if (legacy) localStorage.removeItem(`ai_key_${p}`) }
+      else if (legacy) {
+        await invoke('secret_set', { key: `ai:${p}`, value: legacy })
+        keyCache[p] = legacy
+        localStorage.removeItem(`ai_key_${p}`)
+      }
+    } catch { if (legacy) keyCache[p] = legacy }
+  }
+})()
+
 export function loadProviderKey(p: Provider): string {
   if (p === 'ollama') return 'ollama'
-  return localStorage.getItem(`ai_key_${p}`) ?? ''
+  return keyCache[p] ?? localStorage.getItem(`ai_key_${p}`) ?? ''
 }
 
 export function saveProviderKey(p: Provider, key: string): void {
   if (p === 'ollama') return
-  localStorage.setItem(`ai_key_${p}`, key)
+  keyCache[p] = key
+  const op = key ? invoke('secret_set', { key: `ai:${p}`, value: key }) : invoke('secret_delete', { key: `ai:${p}` })
+  op.then(() => localStorage.removeItem(`ai_key_${p}`))
+    .catch(() => localStorage.setItem(`ai_key_${p}`, key))   // no keychain: keep the old behaviour
 }

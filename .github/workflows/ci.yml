@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: oweecode/package-lock.json
+      - name: Install
+        working-directory: oweecode
+        run: npm ci
+      - name: Type-check (vue-tsc)
+        working-directory: oweecode
+        run: npx vue-tsc --noEmit
+      - name: Tests (vitest)
+        working-directory: oweecode
+        run: npm test
+      - name: Build
+        working-directory: oweecode
+        run: npx vite build
+
+  backend:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: oweecode/src-tauri -> target
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev pkg-config libssh2-1-dev libdbus-1-dev
+      - name: Create a placeholder dist (tauri::generate_context! needs the folder)
+        working-directory: oweecode
+        run: mkdir -p dist && echo '<!doctype html>' > dist/index.html
+      - name: Rust tests
+        working-directory: oweecode/src-tauri
+        run: cargo test

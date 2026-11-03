@@ -121,13 +121,16 @@ function onSaveApiRequest(req: any) {
   apiCollRef.value?.saveRequest(req)
 }
 
+function onOweeRun(e: Event) { const cmd = (e as CustomEvent<string>).detail; if (cmd) onAiRunTerminal(cmd) }
 onMounted(async () => {
+  window.addEventListener('owee-run', onOweeRun)
   const saved = localStorage.getItem('last_project_path')
   if (saved) store.setRootPath(saved)
   window.addEventListener('keydown', onGlobalKeydown)
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('owee-run', onOweeRun)
   window.removeEventListener('keydown', onGlobalKeydown)
 })
 
@@ -300,6 +303,10 @@ const RUN_MAP: Record<string, string> = {
   rust:       'cargo run',
   cpp:        'g++ "{file}" -o /tmp/_ide_out && /tmp/_ide_out',
   sql:        'mysql < "{file}"',
+  qml:        'qml6 "{file}"',
+  dart:       'dart run "{file}"',
+  java:       'java "{file}"',
+  groovy:     'groovy "{file}"',
 }
 
 const activeTab = computed(() => store.activeTab())
@@ -541,6 +548,17 @@ function onDbOpenTable(connId: string, tableName: string, connName: string, driv
           <circle cx="12" cy="7" r="1.2" fill="currentColor" stroke="none"/>
           <circle cx="16.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/>
           <circle cx="9" cy="15" r="1.2" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+      <button
+        class="activity-btn"
+        :class="{ active: store.activeTab()?.type === 'flow' }"
+        title="Flujos y mapa del proyecto"
+        @click="store.openFlowTab()"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="3" width="7" height="6" rx="1.5"/><rect x="15" y="3" width="7" height="6" rx="1.5"/><rect x="8.5" y="15" width="7" height="6" rx="1.5"/>
+          <path d="M9 6h6M5.5 9v3.5h13V9M12 12.5V15"/>
         </svg>
       </button>
       <button

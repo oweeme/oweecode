@@ -246,7 +246,7 @@ async function saveStructEdit(ri: number) {
   const fieldIdx = getStructColIdx('field') !== -1 ? getStructColIdx('field') : getStructColIdx('name')
   const oldName  = structData.value.rows[ri][fieldIdx] ?? ''
   const { field: newName, type_, nullable, default_ } = structEditVals.value
-  if (!newName.trim()) { structEditError.value = 'El nombre no puede estar vacío'; return }
+  if (!newName.trim()) { structEditError.value = t('qNameEmpty'); return }
 
   let sql = ''
   if (props.driver === 'mysql') {
@@ -262,7 +262,7 @@ async function saveStructEdit(ri: number) {
     cmds.push(`ALTER TABLE ${quoteTable(props.tableName)} ALTER COLUMN ${quoteId(newName)} ${nullable ? 'DROP NOT NULL' : 'SET NOT NULL'}`)
     sql = cmds.join('; ')
   } else {
-    structEditError.value = 'SQLite no soporta modificar columnas (limitación del motor)'
+    structEditError.value = t('qSqliteAlter')
     return
   }
 
@@ -283,8 +283,8 @@ async function dropColumn(ri: number) {
   if (!structData.value) return
   const fieldIdx = getStructColIdx('field') !== -1 ? getStructColIdx('field') : getStructColIdx('name')
   const colName  = structData.value.rows[ri][fieldIdx] ?? ''
-  if (!confirm(`¿Eliminar columna "${colName}" de ${props.tableName}? Esta acción no se puede deshacer.`)) return
-  if (props.driver === 'sqlite') { alert('SQLite no soporta DROP COLUMN en versiones antiguas'); return }
+  if (!confirm(t('qDropCol', { col: colName, table: props.tableName }))) return
+  if (props.driver === 'sqlite') { alert(t('qSqliteDrop')); return }
   const sql = `ALTER TABLE ${quoteTable(props.tableName)} DROP COLUMN ${quoteId(colName)}`
   try {
     await invoke('db_execute', { id: props.connId, sql })
@@ -301,7 +301,7 @@ function openAddCol() {
 
 async function confirmAddCol() {
   const col = addColDef.value
-  if (!col.name.trim()) { addColError.value = 'El nombre de columna es requerido'; return }
+  if (!col.name.trim()) { addColError.value = t('qColRequired'); return }
   addColLoading.value = true
   addColError.value   = ''
   const nullStr = col.nullable ? '' : ' NOT NULL'
@@ -333,7 +333,7 @@ async function saveEdit(ri: number) {
   const pk = pkColumn.value ?? tableData.value.columns[0]
   const pkIdx = tableData.value.columns.indexOf(pk)
   const pkVal = pkIdx !== -1 ? tableData.value.rows[ri][pkIdx] : null
-  if (pkVal == null) { editError.value = 'No se encontró la clave primaria'; return }
+  if (pkVal == null) { editError.value = t('qNoPk'); return }
   const sets = tableData.value.columns
     .filter(col => col !== pk)
     .map(col => `${quoteId(col)} = ${escapeVal(editValues.value[col])}`)
@@ -356,7 +356,7 @@ async function deleteRow(ri: number) {
   const pkIdx = tableData.value.columns.indexOf(pk)
   if (pkIdx === -1) return
   const pkVal = tableData.value.rows[ri][pkIdx]
-  if (!confirm(`¿Eliminar fila donde ${pk} = ${pkVal}?`)) return
+  if (!confirm(t('qDelRow', { pk, val: String(pkVal) }))) return
   const sql = `DELETE FROM ${quoteTable(props.tableName)} WHERE ${quoteId(pk)} = ${escapeVal(pkVal)}`
   try {
     await invoke('db_execute', { id: props.connId, sql })
@@ -984,7 +984,7 @@ onBeforeUnmount(() => {
           </template>
           <div v-else class="dv-empty">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity=".2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <span>Ctrl+Enter para ejecutar</span>
+            <span>{{ t('qRunHint') }}</span>
           </div>
         </div>
       </div>
@@ -1089,7 +1089,7 @@ onBeforeUnmount(() => {
 
             <div class="ct-preview">
               <div class="ct-preview-label">SQL generado:</div>
-              <pre class="ct-preview-sql">{{ newTableName ? buildCreateSql() : '— ingresa el nombre de la tabla —' }}</pre>
+              <pre class="ct-preview-sql">{{ newTableName ? buildCreateSql() : t('qTableName') }}</pre>
             </div>
           </div>
           <div v-if="createError" class="modal-error">{{ createError }}</div>

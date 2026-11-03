@@ -94,6 +94,10 @@ fn lsp_binary(language: &str) -> Option<&'static str> {
         "rust"   => Some("rust-analyzer"),
         "php"    => Some("phpactor"),
         "python" => Some("pylsp"),
+        "dart"   => Some("dart"),
+        "kotlin" => Some("kotlin-language-server"),
+        "cpp"    => Some("clangd"),
+        "qml"    => Some("qmlls"),
         _ => None,
     }
 }
@@ -102,6 +106,7 @@ fn lsp_args(language: &str) -> Vec<&'static str> {
     match language {
         "typescript" | "javascript" | "vue" => vec!["--stdio"],
         "php" => vec!["language-server"],
+        "dart" => vec!["language-server", "--protocol=lsp"],
         _ => vec![],
     }
 }
@@ -140,6 +145,8 @@ fn lsp_lang_id(language: &str) -> &'static str {
         "javascript" => "javascript",
         "go" => "go", "rust" => "rust",
         "php" => "php", "python" => "python",
+        "dart" => "dart", "kotlin" => "kotlin",
+        "cpp" => "cpp", "qml" => "qml",
         _ => "plaintext",
     }
 }
@@ -223,6 +230,22 @@ fn lsp_start_reader(mut reader: LspBufReader<std::process::ChildStdout>, session
 
 /// Starts (or no-ops if already running) the language server for `language`,
 /// rooted at `root_path`, and completes the `initialize`/`initialized` handshake.
+/// Reports which language servers are installed (language -> full path or null),
+/// resolved against the same PATH `lsp_start` uses, so Preferences matches reality.
+#[tauri::command]
+pub async fn lsp_check_installed() -> HashMap<String, Option<String>> {
+    let mut out = HashMap::new();
+    for lang in ["typescript", "vue", "go", "rust", "php", "python", "dart", "kotlin", "cpp", "qml"] {
+        let bin = lsp_binary(lang).unwrap();
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        let found = crate::util::find_binary(bin).await;
+        #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+        let found: Option<String> = None;
+        out.insert(lang.to_string(), found);
+    }
+    out
+}
+
 #[tauri::command]
 pub async fn lsp_start(language: String, root_path: String) -> Result<bool, String> {
     {
@@ -230,7 +253,13 @@ pub async fn lsp_start(language: String, root_path: String) -> Result<bool, Stri
         if sessions.contains_key(&language) { return Ok(true); }
     }
     let binary = lsp_binary(&language).ok_or_else(|| format!("No LSP para {}", language))?;
-    let args   = lsp_args(&language);
+    let mut args: Vec<String> = lsp_args(&language).into_iter().map(String::from).collect();
+    // clangd needs compile_commands.json (cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON) to know include paths
+    if language == "cpp" {
+        for dir in ["build", "build/Debug", "out/build", "."] {
+            if std::path::Path::new(&root_path).join(dir).join("compile_commands.json").exists() { args.push(format!("--compile-commands-dir={}/{}", root_path, dir)); break; }
+        }
+    }
 
     // Same PATH gap as pty::pty_create's CLI spawn: a language server installed
     // via npm/go install/rustup/composer/pip lives in a directory this
@@ -238,7 +267,11 @@ pub async fn lsp_start(language: String, root_path: String) -> Result<bool, Stri
     #[cfg(any(target_os = "macos", target_os = "linux"))]
     let resolved_path = resolve_login_shell_path().await;
 
-    let mut cmd = std::process::Command::new(binary);
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    let binary_path = crate::util::find_binary(binary).await.unwrap_or_else(|| binary.to_string());
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    let binary_path = binary.to_string();
+    let mut cmd = std::process::Command::new(&binary_path);
     cmd.args(&args)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())

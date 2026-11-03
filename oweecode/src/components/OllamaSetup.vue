@@ -10,6 +10,7 @@ import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { useEditorStore } from '../composables/useEditorStore'
+import { useI18n } from '../composables/useI18n'
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 const store = useEditorStore()
@@ -17,13 +18,14 @@ const store = useEditorStore()
 interface OllamaStatus { installed: boolean; running: boolean; version: string | null }
 interface PullProgress { model: string; status: string; completed: number; total: number }
 
+const { t } = useI18n()
 const status = ref<OllamaStatus | null>(null)
 const checking = ref(true)
 const accepted = ref(false)
 
-const RECOMMENDED_MODELS = [
-  { id: 'qwen2.5-coder:3b-instruct-q4_K_M', label: 'Rápido (3B)', size: '~2 GB', hint: 'Iteración rápida, respuestas cortas' },
-  { id: 'qwen2.5-coder:7b-instruct-q4_K_M', label: 'Razonamiento (7B, recomendado)', size: '~4.5 GB', hint: 'Modelo principal del modo Agente' },
+const RECOMMENDED_MODELS: { id: string; label: 'oM3' | 'oM7'; size: string; hint: 'oM3h' | 'oM7h' }[] = [
+  { id: 'qwen2.5-coder:3b-instruct-q4_K_M', label: 'oM3', size: '~2 GB', hint: 'oM3h' },
+  { id: 'qwen2.5-coder:7b-instruct-q4_K_M', label: 'oM7', size: '~4.5 GB', hint: 'oM7h' },
 ]
 
 const installedModels = ref<string[]>([])
@@ -161,37 +163,37 @@ onBeforeUnmount(async () => {
     <div class="ollama-overlay" @click.self="emit('close')">
       <div class="ollama-modal">
         <div class="ollama-modal-head">
-          <span class="ollama-modal-title">⚙ Configurar modo Agente (Ollama)</span>
+          <span class="ollama-modal-title">{{ t('oTitle') }}</span>
           <button class="ollama-modal-close" @click="emit('close')">✕</button>
         </div>
 
         <div v-if="checking" class="ollama-step">
-          <div class="mini-spin" /> Comprobando instalación de Ollama…
+          <div class="mini-spin" /> {{ t('oChecking') }}
         </div>
 
         <!-- Terms + install -->
         <template v-else-if="!status?.installed && activeTerminal !== 'install'">
           <div class="ollama-step">
-            <p>El modo Agente corre 100% local con <strong>Ollama</strong>. Antes de instalar algo, esto es lo que va a pasar:</p>
+            <p v-html="t('oIntro')" />
             <ul class="ollama-terms">
-              <li>Se instala el runtime de Ollama en tu sistema (código abierto, ollama.com).</li>
-              <li>Descargás por separado los modelos que quieras usar — cada uno pesa unos GB.</li>
-              <li>Todo corre en tu máquina, sin mandar código a ningún servidor externo.</li>
-              <li>Podés desinstalarlo cuando quieras siguiendo las instrucciones de ollama.com.</li>
+              <li>{{ t('oTerm1') }}</li>
+              <li>{{ t('oTerm2') }}</li>
+              <li>{{ t('oTerm3') }}</li>
+              <li>{{ t('oTerm4') }}</li>
             </ul>
             <template v-if="platform === 'linux'">
               <div class="ollama-cmd-preview">{{ installCmd }}</div>
-              <button class="ollama-btn ollama-btn--primary" @click="startInstall">Aceptar e instalar</button>
+              <button class="ollama-btn ollama-btn--primary" @click="startInstall">{{ t('oAccept') }}</button>
             </template>
             <template v-else-if="platform === 'mac'">
-              <p class="ollama-hint">En macOS se instala con la app oficial (o <code>brew install ollama</code> si usás Homebrew) — descargalo y volvé acá.</p>
-              <a class="ollama-btn ollama-btn--primary" href="https://ollama.com/download/mac" target="_blank">Descargar Ollama para macOS →</a>
-              <button class="ollama-btn" @click="refreshStatus">Ya lo instalé, reintentar</button>
+              <p class="ollama-hint" v-html="t('oMacHint')" />
+              <a class="ollama-btn ollama-btn--primary" href="https://ollama.com/download/mac" target="_blank">{{ t('oMacBtn') }}</a>
+              <button class="ollama-btn" @click="refreshStatus">{{ t('oDone') }}</button>
             </template>
             <template v-else>
-              <p class="ollama-hint">Windows no tiene un instalador por línea de comandos único — descargalo desde el sitio oficial y volvé acá.</p>
-              <a class="ollama-btn ollama-btn--primary" href="https://ollama.com/download/windows" target="_blank">Descargar Ollama para Windows →</a>
-              <button class="ollama-btn" @click="refreshStatus">Ya lo instalé, reintentar</button>
+              <p class="ollama-hint">{{ t('oWinHint') }}</p>
+              <a class="ollama-btn ollama-btn--primary" href="https://ollama.com/download/windows" target="_blank">{{ t('oWinBtn') }}</a>
+              <button class="ollama-btn" @click="refreshStatus">{{ t('oDone') }}</button>
             </template>
           </div>
         </template>
@@ -199,7 +201,7 @@ onBeforeUnmount(async () => {
         <!-- Installing (embedded terminal) -->
         <template v-else-if="activeTerminal === 'install' && !status?.installed">
           <div class="ollama-step">
-            <p>Instalando Ollama…</p>
+            <p>{{ t('oInstalling') }}</p>
             <div ref="termEl" class="ollama-term"></div>
           </div>
         </template>
@@ -207,70 +209,66 @@ onBeforeUnmount(async () => {
         <!-- Installed but service not reachable yet -->
         <template v-else-if="status?.installed && !status?.running">
           <div class="ollama-step">
-            <p>Ollama está instalado ({{ status.version }}) pero el servicio no responde todavía.</p>
-            <p class="ollama-hint">En Linux normalmente arranca solo como servicio. Si no, abrí una terminal y corré <code>ollama serve</code>.</p>
-            <button class="ollama-btn" @click="refreshStatus">Reintentar</button>
+            <p>{{ t('oNoService', { v: status.version ?? '' }) }}</p>
+            <p class="ollama-hint" v-html="t('oServeHint')" />
+            <button class="ollama-btn" @click="refreshStatus">{{ t('oRetry') }}</button>
           </div>
         </template>
 
         <!-- Signing in to ollama.com (embedded terminal) -->
         <template v-else-if="activeTerminal === 'signin'">
           <div class="ollama-step">
-            <p>Iniciando sesión en ollama.com — abrí el link que aparezca abajo en tu navegador.</p>
+            <p>{{ t('oSigning') }}</p>
             <div ref="termEl" class="ollama-term"></div>
-            <button class="ollama-btn" @click="activeTerminal = 'none'">Volver</button>
+            <button class="ollama-btn" @click="activeTerminal = 'none'">{{ t('oBack') }}</button>
           </div>
         </template>
 
         <!-- Running: account + model pull cards -->
         <template v-else-if="status?.running">
           <div class="ollama-step">
-            <p class="ollama-hint">Ollama {{ status.version }} corriendo.</p>
+            <p class="ollama-hint">{{ t('oRunning', { v: status.version ?? '' }) }}</p>
 
             <div class="ollama-cloud-box">
-              <div class="ollama-cloud-head">☁ Modelos cloud (ollama.com)</div>
-              <p class="ollama-model-hint">
-                Además de correr modelos en esta máquina, podés usar modelos alojados en la infraestructura de Ollama (uso gratis limitado por cuenta, plan pago "Turbo" para más cuota). Una vez logueado, cualquier modelo <code>:cloud</code> que bajes (<code>ollama pull nombre:cloud</code>) aparece automático en los selectores del Agente, el Chat y Aider — sin instalarse en disco.
-              </p>
-              <div v-if="signedIn" class="ollama-model-ready">✓ Sesión iniciada esta vez</div>
-              <button v-else class="ollama-btn" @click="startSignin">Iniciar sesión en Ollama.com</button>
+              <div class="ollama-cloud-head">{{ t('oCloud') }}</div>
+              <p class="ollama-model-hint" v-html="t('oCloudNote')"></p>
+              <div v-if="signedIn" class="ollama-model-ready">{{ t('oSignedIn') }}</div>
+              <button v-else class="ollama-btn" @click="startSignin">{{ t('oSignIn') }}</button>
             </div>
 
-            <p class="ollama-hint">Descargá los modelos locales recomendados para usar el modo Agente:</p>
+            <p class="ollama-hint">{{ t('oRecommended') }}</p>
             <div v-for="m in RECOMMENDED_MODELS" :key="m.id" class="ollama-model-card">
               <div class="ollama-model-head">
-                <span class="ollama-model-label">{{ m.label }}</span>
+                <span class="ollama-model-label">{{ t(m.label) }}</span>
                 <span class="ollama-model-size">{{ m.size }}</span>
               </div>
               <div class="ollama-model-id">{{ m.id }}</div>
-              <p class="ollama-model-hint">{{ m.hint }}</p>
+              <p class="ollama-model-hint">{{ t(m.hint) }}</p>
 
-              <div v-if="hasModel(m.id)" class="ollama-model-ready">✓ Disponible</div>
+              <div v-if="hasModel(m.id)" class="ollama-model-ready">{{ t('oAvailable') }}</div>
               <div v-else-if="pulling[m.id]" class="ollama-model-progress">
                 <div class="ollama-progress-bar"><div class="ollama-progress-fill" :style="{ width: progressPct(pulling[m.id]) + '%' }" /></div>
                 <span class="ollama-progress-label">{{ pulling[m.id].status }} {{ pulling[m.id].total ? progressPct(pulling[m.id]) + '%' : '' }}</span>
               </div>
-              <button v-else class="ollama-btn" @click="pullModel(m.id)">Descargar</button>
+              <button v-else class="ollama-btn" @click="pullModel(m.id)">{{ t('oDownload') }}</button>
             </div>
 
             <div class="ollama-custom-box">
-              <div class="ollama-cloud-head">Otro modelo</div>
-              <p class="ollama-model-hint">
-                Con más RAM/VRAM que esta máquina podés bajar modelos más grandes — ej. <code>qwen2.5-coder:14b</code>, <code>qwen2.5-coder:32b</code>, <code>devstral:24b</code>, <code>qwen3-coder:30b-a3b</code>. Buscá el tag exacto en <a href="https://ollama.com/library" target="_blank">ollama.com/library</a>.
-              </p>
+              <div class="ollama-cloud-head">{{ t('oOther') }}</div>
+              <p class="ollama-model-hint" v-html="t('oOtherNote')"></p>
               <div v-if="pulling[customModel]" class="ollama-model-progress">
                 <div class="ollama-progress-bar"><div class="ollama-progress-fill" :style="{ width: progressPct(pulling[customModel]) + '%' }" /></div>
                 <span class="ollama-progress-label">{{ pulling[customModel].status }} {{ pulling[customModel].total ? progressPct(pulling[customModel]) + '%' : '' }}</span>
               </div>
               <div v-else class="ollama-custom-row">
-                <input v-model="customModel" class="ollama-custom-input" placeholder="ej. qwen2.5-coder:14b" @keydown.enter="customModel.trim() && pullModel(customModel.trim())" />
-                <button class="ollama-btn" :disabled="!customModel.trim()" @click="pullModel(customModel.trim())">Descargar</button>
+                <input v-model="customModel" class="ollama-custom-input" :placeholder="t('oCustomPh')" @keydown.enter="customModel.trim() && pullModel(customModel.trim())" />
+                <button class="ollama-btn" :disabled="!customModel.trim()" @click="pullModel(customModel.trim())">{{ t('oDownload') }}</button>
               </div>
-              <div v-if="hasModel(customModel.trim())" class="ollama-model-ready">✓ Ya disponible</div>
+              <div v-if="hasModel(customModel.trim())" class="ollama-model-ready">{{ t('oAlready') }}</div>
             </div>
 
             <div v-if="installedModels.length" class="ollama-installed-list">
-              <div class="ollama-cloud-head">Ya descargados en esta máquina</div>
+              <div class="ollama-cloud-head">{{ t('oInstalled') }}</div>
               <div v-for="m in installedModels" :key="m" class="ollama-installed-item">{{ m }}</div>
             </div>
           </div>

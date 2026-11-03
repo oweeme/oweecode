@@ -6,7 +6,9 @@ import { WebLinksAddon } from '@xterm/addon-web-links'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import '@xterm/xterm/css/xterm.css'
+import { useI18n } from '../composables/useI18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   cwd: string
   command?: string   // optional: run this CLI instead of bash (e.g. 'claude', 'gemini')
@@ -174,8 +176,8 @@ async function startPty() {
     }
 
   } catch (e: any) {
-    xterm?.writeln(`\x1b[31mError iniciando PTY: ${e}\x1b[0m`)
-    xterm?.writeln('\x1b[2mAsegúrate de que el comando existe en el sistema.\x1b[0m')
+    xterm?.writeln(`\x1b[31m${t('tPtyErr', { e: String(e) })}\x1b[0m`)
+    xterm?.writeln(`\x1b[2m${t('tPtyHint')}\x1b[0m`)
   }
 }
 

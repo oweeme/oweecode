@@ -18,6 +18,8 @@ interface UpdaterState {
   // a system directory a regular process can't overwrite, so a failure here
   // almost always means "wrong install method," not "something broke."
   manualUpdateUrl: string
+  // true once a check finished without error and found nothing newer
+  upToDate: boolean
 }
 
 const state = reactive<UpdaterState>({
@@ -32,6 +34,7 @@ const state = reactive<UpdaterState>({
   error: '',
   dismissed: false,
   manualUpdateUrl: '',
+  upToDate: false,
 })
 
 const RELEASES_URL = 'https://github.com/oweeme/oweecode/releases/latest'
@@ -42,6 +45,7 @@ async function checkForUpdates() {
   state.checking = true
   state.error = ''
   state.manualUpdateUrl = ''
+  state.upToDate = false
   try {
     const update = await check()
     if (update) {
@@ -53,6 +57,7 @@ async function checkForUpdates() {
       state.notes = update.body ?? ''
     } else {
       state.available = false
+      state.upToDate = true
       pendingUpdate = null
     }
   } catch (e: any) {

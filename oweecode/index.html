@@ -5,10 +5,21 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OweeCode</title>
+    <style>
+      html, body { margin: 0; background: #141416; }
+      /* shown while the app loads; Vue replaces everything inside #app when it mounts */
+      #owee-splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #141416; }
+      #owee-splash img { width: 96px; height: 96px; border-radius: 22px; animation: owee-pulse 1.6s ease-in-out infinite; }
+      #owee-splash b { font: 600 15px system-ui, sans-serif; color: #c9d1d9; letter-spacing: .04em; }
+      #owee-splash i { width: 120px; height: 3px; border-radius: 3px; background: #ffffff14; overflow: hidden; position: relative; }
+      #owee-splash i::after { content: ""; position: absolute; inset: 0; width: 40%; background: #2ea88a; border-radius: 3px; animation: owee-slide 1.2s ease-in-out infinite; }
+      @keyframes owee-pulse { 0%, 100% { transform: scale(1); opacity: .92 } 50% { transform: scale(1.06); opacity: 1 } }
+      @keyframes owee-slide { 0% { transform: translateX(-100%) } 100% { transform: translateX(300%) } }
+    </style>
   </head>
 
   <body>
-    <div id="app"></div>
+    <div id="app"><div id="owee-splash"><img src="/oweedev.png" alt="" /><b>OweeCode</b><i></i></div></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

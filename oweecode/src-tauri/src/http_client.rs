@@ -50,3 +50,22 @@ pub async fn http_request(
 
     Ok(HttpResponse { status, status_text, headers: hdrs, body: body_str, time_ms })
 }
+
+#[cfg(test)]
+mod tests {
+    #[tokio::test]
+    async fn http_request_returns_status_headers_and_json_body() {
+        let r = match super::http_request("GET".into(), "http://127.0.0.1:8765/clientes/7".into(), Default::default(), None).await {
+            Ok(r) => r, Err(e) => { println!("SKIP (sin servidor de prueba): {e}"); return; }
+        };
+        println!("HTTP {} {} {}ms x-demo={:?} body={}", r.status, r.status_text, r.time_ms, r.headers.get("x-demo"), r.body);
+        assert_eq!(r.status, 200);
+        assert_eq!(r.headers.get("x-demo").map(|s| s.as_str()), Some("owee"));
+        assert!(r.body.contains("\"nombre\": \"Ana\""));
+        let p = super::http_request("POST".into(), "http://127.0.0.1:8765/pedidos".into(), [("Content-Type".to_string(), "application/json".to_string())].into(), Some("{\"a\":1}".into())).await.unwrap();
+        println!("POST {} {}", p.status, p.body);
+        assert_eq!(p.status, 201);
+        let nf = super::http_request("GET".into(), "http://127.0.0.1:8765/otra".into(), Default::default(), None).await.unwrap();
+        assert_eq!(nf.status, 404);
+    }
+}

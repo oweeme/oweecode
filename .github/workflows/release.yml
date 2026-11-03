@@ -20,7 +20,7 @@ jobs:
           - os: windows-latest
             bundles: nsis,msi
           - os: macos-latest
-            bundles: dmg
+            bundles: dmg,app
 
     runs-on: ${{ matrix.os }}
 

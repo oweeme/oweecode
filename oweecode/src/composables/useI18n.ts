@@ -1,8 +1,19 @@
 import { ref, computed } from 'vue'
+import { extraEn, extraEs, type ExtraKey } from './i18nExtra'
+import { extraDe } from './i18nExtra.de'
+import { extraFr } from './i18nExtra.fr'
+import { extraKo } from './i18nExtra.ko'
+import { extraZh } from './i18nExtra.zh'
+import { extraJa } from './i18nExtra.ja'
+import { extraRu } from './i18nExtra.ru'
 
 export type Locale = 'en' | 'es' | 'de' | 'fr' | 'ko' | 'zh' | 'ja' | 'ru'
 
 const locale = ref<Locale>((localStorage.getItem('ide_locale') as Locale) ?? 'en')
+
+const extraByLocale: Record<Locale, Record<string, string | undefined>> = {
+  en: extraEn, es: extraEs, de: extraDe, fr: extraFr, ko: extraKo, zh: extraZh, ja: extraJa, ru: extraRu,
+}
 
 const strings = {
   en: {
@@ -125,8 +136,8 @@ const strings = {
     createDbIfNotExists: 'Create database if it doesn\'t exist', creatingDatabase: 'Creating database…',
     erDiagramTitle: 'ER Diagram', erAutoArrange: 'Auto-arrange', erResetView: 'Reset view', erZoomToFit: 'Zoom to fit', erNewRelationship: 'New relationship',
     browserPreviewTitle: 'Browser preview', browserGoTitle: 'Go', browserOpenExternalTitle: 'Open in external browser', browserRotateTitle: 'Rotate device', 
-    designTitle: 'Visual design', designExportHtml: 'Export HTML', designExportVue: 'Export Vue', designExported: 'Exported to',
-    designNewProjectTitle: 'New design project', designProjectNamePlaceholder: 'Project name', designFormatHtml: 'Plain HTML', designFormatVue: 'Vue', designChooseFolder: 'Choose folder…', designCreateProject: 'Create project', designOpenExisting: 'Open existing project…', designPageTitleLabel: 'Title', designPageDescLabel: 'Description', designSave: 'Save', designSaved: 'Saved',
+    designTitle: 'Visual design', designExportHtml: 'Export HTML', designExportVue: 'Export Quasar', designExported: 'Exported to',
+    designNewProjectTitle: 'New design project', designProjectNamePlaceholder: 'Project name', designFormatHtml: 'Plain HTML', designFormatVue: 'Quasar (Vue 3)', designChooseFolder: 'Choose folder…', designCreateProject: 'Create project', designOpenExisting: 'Open existing project…', designPageTitleLabel: 'Title', designPageDescLabel: 'Description', designSave: 'Save', designSaved: 'Saved',
     designAddPage: 'Add page', designNewPagePlaceholder: 'Page name', designBackToMap: '← Back to map', designSaveMap: 'Save map', designDeletePage: 'Delete page',
     designAiPlaceholder: 'Describe what to generate (e.g. "pricing section with 3 plans")', designAiGenerate: '✦ Generate', designAiGenerating: 'Generating…', designAiNoKey: 'Set up your AI provider in the AI Assistant panel first',
     containers: 'Containers', showAllContainers: 'Show all containers', allLabel: 'All', runningLabel: 'Running', usingRuntime: 'Using', installPodmanHint: 'Install Podman (podman.io) or Docker to use this panel.', noContainers: 'No containers', startContainer: 'Start', stopContainer: 'Stop', restartContainer: 'Restart', viewLogs: 'View logs', removeContainer: 'Remove', confirmRemoveContainer: 'Remove this container?', noLogsYet: 'No logs yet',
@@ -262,8 +273,8 @@ const strings = {
     createDbIfNotExists: 'Crear base de datos si no existe', creatingDatabase: 'Creando base de datos…',
     erDiagramTitle: 'Diagrama ER', erAutoArrange: 'Auto-organizar', erResetView: 'Restablecer vista', erZoomToFit: 'Ajustar zoom', erNewRelationship: 'Nueva relación',
     browserPreviewTitle: 'Vista previa del navegador', browserGoTitle: 'Ir', browserOpenExternalTitle: 'Abrir en el navegador externo', browserRotateTitle: 'Rotar dispositivo', 
-    designTitle: 'Diseño visual', designExportHtml: 'Exportar HTML', designExportVue: 'Exportar Vue', designExported: 'Exportado a',
-    designNewProjectTitle: 'Nuevo proyecto de diseño', designProjectNamePlaceholder: 'Nombre del proyecto', designFormatHtml: 'HTML puro', designFormatVue: 'Vue', designChooseFolder: 'Elegir carpeta…', designCreateProject: 'Crear proyecto', designOpenExisting: 'Abrir proyecto existente…', designPageTitleLabel: 'Título', designPageDescLabel: 'Descripción', designSave: 'Guardar', designSaved: 'Guardado',
+    designTitle: 'Diseño visual', designExportHtml: 'Exportar HTML', designExportVue: 'Exportar Quasar', designExported: 'Exportado a',
+    designNewProjectTitle: 'Nuevo proyecto de diseño', designProjectNamePlaceholder: 'Nombre del proyecto', designFormatHtml: 'HTML puro', designFormatVue: 'Quasar (Vue 3)', designChooseFolder: 'Elegir carpeta…', designCreateProject: 'Crear proyecto', designOpenExisting: 'Abrir proyecto existente…', designPageTitleLabel: 'Título', designPageDescLabel: 'Descripción', designSave: 'Guardar', designSaved: 'Guardado',
     designAddPage: 'Agregar página', designNewPagePlaceholder: 'Nombre de la página', designBackToMap: '← Volver al mapa', designSaveMap: 'Guardar mapa', designDeletePage: 'Eliminar página',
     designAiPlaceholder: 'Describí qué generar (ej: "sección de precios con 3 planes")', designAiGenerate: '✦ Generar', designAiGenerating: 'Generando…', designAiNoKey: 'Configurá tu proveedor de IA en el panel de Asistente IA primero',
     containers: 'Contenedores', showAllContainers: 'Mostrar todos los contenedores', allLabel: 'Todos', runningLabel: 'En ejecución', usingRuntime: 'Usando', installPodmanHint: 'Instalá Podman (podman.io) o Docker para usar este panel.', noContainers: 'Sin contenedores', startContainer: 'Iniciar', stopContainer: 'Detener', restartContainer: 'Reiniciar', viewLogs: 'Ver logs', removeContainer: 'Eliminar', confirmRemoveContainer: '¿Eliminar este contenedor?', noLogsYet: 'Todavía no hay logs',
@@ -399,8 +410,8 @@ const strings = {
     createDbIfNotExists: 'Datenbank erstellen, falls nicht vorhanden', creatingDatabase: 'Datenbank wird erstellt…',
     erDiagramTitle: 'ER-Diagramm', erAutoArrange: 'Automatisch anordnen', erResetView: 'Ansicht zurücksetzen', erZoomToFit: 'Einpassen', erNewRelationship: 'Neue Beziehung',
     browserPreviewTitle: 'Browser-Vorschau', browserGoTitle: 'Los', browserOpenExternalTitle: 'Im externen Browser öffnen', browserRotateTitle: 'Gerät drehen', 
-    designTitle: 'Visuelles Design', designExportHtml: 'HTML exportieren', designExportVue: 'Vue exportieren', designExported: 'Exportiert nach',
-    designNewProjectTitle: 'Neues Design-Projekt', designProjectNamePlaceholder: 'Projektname', designFormatHtml: 'Reines HTML', designFormatVue: 'Vue', designChooseFolder: 'Ordner wählen…', designCreateProject: 'Projekt erstellen', designOpenExisting: 'Vorhandenes Projekt öffnen…', designPageTitleLabel: 'Titel', designPageDescLabel: 'Beschreibung', designSave: 'Speichern', designSaved: 'Gespeichert',
+    designTitle: 'Visuelles Design', designExportHtml: 'HTML exportieren', designExportVue: 'Quasar exportieren', designExported: 'Exportiert nach',
+    designNewProjectTitle: 'Neues Design-Projekt', designProjectNamePlaceholder: 'Projektname', designFormatHtml: 'Reines HTML', designFormatVue: 'Quasar (Vue 3)', designChooseFolder: 'Ordner wählen…', designCreateProject: 'Projekt erstellen', designOpenExisting: 'Vorhandenes Projekt öffnen…', designPageTitleLabel: 'Titel', designPageDescLabel: 'Beschreibung', designSave: 'Speichern', designSaved: 'Gespeichert',
     designAddPage: 'Seite hinzufügen', designNewPagePlaceholder: 'Seitenname', designBackToMap: '← Zurück zur Karte', designSaveMap: 'Karte speichern', designDeletePage: 'Seite löschen',
     designAiPlaceholder: 'Beschreibe, was generiert werden soll (z. B. "Preisbereich mit 3 Plänen")', designAiGenerate: '✦ Generieren', designAiGenerating: 'Generiere…', designAiNoKey: 'Richte zuerst deinen KI-Anbieter im Panel „KI-Assistent" ein',
     containers: 'Container', showAllContainers: 'Alle Container anzeigen', allLabel: 'Alle', runningLabel: 'Laufend', usingRuntime: 'Verwendet', installPodmanHint: 'Installiere Podman (podman.io) oder Docker, um dieses Panel zu nutzen.', noContainers: 'Keine Container', startContainer: 'Starten', stopContainer: 'Stoppen', restartContainer: 'Neu starten', viewLogs: 'Logs anzeigen', removeContainer: 'Entfernen', confirmRemoveContainer: 'Diesen Container entfernen?', noLogsYet: 'Noch keine Logs',
@@ -536,8 +547,8 @@ const strings = {
     createDbIfNotExists: "Créer la base de données si elle n'existe pas", creatingDatabase: 'Création de la base de données…',
     erDiagramTitle: 'Diagramme ER', erAutoArrange: 'Organisation automatique', erResetView: 'Réinitialiser la vue', erZoomToFit: 'Ajuster le zoom', erNewRelationship: 'Nouvelle relation',
     browserPreviewTitle: 'Aperçu navigateur', browserGoTitle: 'Aller', browserOpenExternalTitle: 'Ouvrir dans le navigateur externe', browserRotateTitle: "Faire pivoter l'appareil", 
-    designTitle: 'Design visuel', designExportHtml: 'Exporter en HTML', designExportVue: 'Exporter en Vue', designExported: 'Exporté vers',
-    designNewProjectTitle: 'Nouveau projet de design', designProjectNamePlaceholder: 'Nom du projet', designFormatHtml: 'HTML pur', designFormatVue: 'Vue', designChooseFolder: 'Choisir un dossier…', designCreateProject: 'Créer le projet', designOpenExisting: 'Ouvrir un projet existant…', designPageTitleLabel: 'Titre', designPageDescLabel: 'Description', designSave: 'Enregistrer', designSaved: 'Enregistré',
+    designTitle: 'Design visuel', designExportHtml: 'Exporter en HTML', designExportVue: 'Exporter en Quasar', designExported: 'Exporté vers',
+    designNewProjectTitle: 'Nouveau projet de design', designProjectNamePlaceholder: 'Nom du projet', designFormatHtml: 'HTML pur', designFormatVue: 'Quasar (Vue 3)', designChooseFolder: 'Choisir un dossier…', designCreateProject: 'Créer le projet', designOpenExisting: 'Ouvrir un projet existant…', designPageTitleLabel: 'Titre', designPageDescLabel: 'Description', designSave: 'Enregistrer', designSaved: 'Enregistré',
     designAddPage: 'Ajouter une page', designNewPagePlaceholder: 'Nom de la page', designBackToMap: '← Retour à la carte', designSaveMap: 'Enregistrer la carte', designDeletePage: 'Supprimer la page',
     designAiPlaceholder: 'Décris ce qu\'il faut générer (ex: "section tarifs avec 3 plans")', designAiGenerate: '✦ Générer', designAiGenerating: 'Génération…', designAiNoKey: 'Configure d\'abord ton fournisseur IA dans le panneau Assistant IA',
     containers: 'Conteneurs', showAllContainers: 'Afficher tous les conteneurs', allLabel: 'Tous', runningLabel: 'En cours', usingRuntime: 'Utilise', installPodmanHint: 'Installez Podman (podman.io) ou Docker pour utiliser ce panneau.', noContainers: 'Aucun conteneur', startContainer: 'Démarrer', stopContainer: 'Arrêter', restartContainer: 'Redémarrer', viewLogs: 'Voir les logs', removeContainer: 'Supprimer', confirmRemoveContainer: 'Supprimer ce conteneur ?', noLogsYet: 'Pas encore de logs',
@@ -673,8 +684,8 @@ const strings = {
     createDbIfNotExists: '없으면 데이터베이스 생성', creatingDatabase: '데이터베이스 생성 중…',
     erDiagramTitle: 'ER 다이어그램', erAutoArrange: '자동 정렬', erResetView: '보기 재설정', erZoomToFit: '화면에 맞추기', erNewRelationship: '새 관계',
     browserPreviewTitle: '브라우저 미리보기', browserGoTitle: '이동', browserOpenExternalTitle: '외부 브라우저에서 열기', browserRotateTitle: '기기 회전', 
-    designTitle: '비주얼 디자인', designExportHtml: 'HTML로 내보내기', designExportVue: 'Vue로 내보내기', designExported: '내보낸 위치',
-    designNewProjectTitle: '새 디자인 프로젝트', designProjectNamePlaceholder: '프로젝트 이름', designFormatHtml: '순수 HTML', designFormatVue: 'Vue', designChooseFolder: '폴더 선택…', designCreateProject: '프로젝트 생성', designOpenExisting: '기존 프로젝트 열기…', designPageTitleLabel: '제목', designPageDescLabel: '설명', designSave: '저장', designSaved: '저장됨',
+    designTitle: '비주얼 디자인', designExportHtml: 'HTML로 내보내기', designExportVue: 'Quasar로 내보내기', designExported: '내보낸 위치',
+    designNewProjectTitle: '새 디자인 프로젝트', designProjectNamePlaceholder: '프로젝트 이름', designFormatHtml: '순수 HTML', designFormatVue: 'Quasar (Vue 3)', designChooseFolder: '폴더 선택…', designCreateProject: '프로젝트 생성', designOpenExisting: '기존 프로젝트 열기…', designPageTitleLabel: '제목', designPageDescLabel: '설명', designSave: '저장', designSaved: '저장됨',
     designAddPage: '페이지 추가', designNewPagePlaceholder: '페이지 이름', designBackToMap: '← 맵으로 돌아가기', designSaveMap: '맵 저장', designDeletePage: '페이지 삭제',
     designAiPlaceholder: '생성할 내용을 설명하세요 (예: "3개 요금제가 있는 가격 섹션")', designAiGenerate: '✦ 생성', designAiGenerating: '생성 중…', designAiNoKey: '먼저 AI 어시스턴트 패널에서 AI 제공자를 설정하세요',
     containers: '컨테이너', showAllContainers: '모든 컨테이너 표시', allLabel: '전체', runningLabel: '실행 중', usingRuntime: '사용 중', installPodmanHint: '이 패널을 사용하려면 Podman(podman.io) 또는 Docker를 설치하세요.', noContainers: '컨테이너 없음', startContainer: '시작', stopContainer: '중지', restartContainer: '재시작', viewLogs: '로그 보기', removeContainer: '삭제', confirmRemoveContainer: '이 컨테이너를 삭제할까요?', noLogsYet: '아직 로그가 없습니다',
@@ -810,8 +821,8 @@ const strings = {
     createDbIfNotExists: '如果不存在则创建数据库', creatingDatabase: '正在创建数据库…',
     erDiagramTitle: 'ER 图', erAutoArrange: '自动排列', erResetView: '重置视图', erZoomToFit: '缩放以适应', erNewRelationship: '新建关系',
     browserPreviewTitle: '浏览器预览', browserGoTitle: '前往', browserOpenExternalTitle: '在外部浏览器中打开', browserRotateTitle: '旋转设备', 
-    designTitle: '可视化设计', designExportHtml: '导出为 HTML', designExportVue: '导出为 Vue', designExported: '已导出到',
-    designNewProjectTitle: '新建设计项目', designProjectNamePlaceholder: '项目名称', designFormatHtml: '纯 HTML', designFormatVue: 'Vue', designChooseFolder: '选择文件夹…', designCreateProject: '创建项目', designOpenExisting: '打开现有项目…', designPageTitleLabel: '标题', designPageDescLabel: '描述', designSave: '保存', designSaved: '已保存',
+    designTitle: '可视化设计', designExportHtml: '导出为 HTML', designExportVue: '导出为 Quasar', designExported: '已导出到',
+    designNewProjectTitle: '新建设计项目', designProjectNamePlaceholder: '项目名称', designFormatHtml: '纯 HTML', designFormatVue: 'Quasar (Vue 3)', designChooseFolder: '选择文件夹…', designCreateProject: '创建项目', designOpenExisting: '打开现有项目…', designPageTitleLabel: '标题', designPageDescLabel: '描述', designSave: '保存', designSaved: '已保存',
     designAddPage: '添加页面', designNewPagePlaceholder: '页面名称', designBackToMap: '← 返回地图', designSaveMap: '保存地图', designDeletePage: '删除页面',
     designAiPlaceholder: '描述要生成的内容（例如："包含3个套餐的价格区块"）', designAiGenerate: '✦ 生成', designAiGenerating: '生成中…', designAiNoKey: '请先在 AI 助手面板中配置你的 AI 提供商',
     containers: '容器', showAllContainers: '显示所有容器', allLabel: '全部', runningLabel: '运行中', usingRuntime: '使用中', installPodmanHint: '安装 Podman（podman.io）或 Docker 以使用此面板。', noContainers: '没有容器', startContainer: '启动', stopContainer: '停止', restartContainer: '重启', viewLogs: '查看日志', removeContainer: '删除', confirmRemoveContainer: '删除此容器？', noLogsYet: '暂无日志',
@@ -947,8 +958,8 @@ const strings = {
     createDbIfNotExists: '存在しない場合はデータベースを作成', creatingDatabase: 'データベースを作成中…',
     erDiagramTitle: 'ER 図', erAutoArrange: '自動整列', erResetView: '表示をリセット', erZoomToFit: '全体表示', erNewRelationship: '新しいリレーション',
     browserPreviewTitle: 'ブラウザプレビュー', browserGoTitle: '移動', browserOpenExternalTitle: '外部ブラウザで開く', browserRotateTitle: 'デバイスを回転', 
-    designTitle: 'ビジュアルデザイン', designExportHtml: 'HTMLとしてエクスポート', designExportVue: 'Vueとしてエクスポート', designExported: 'エクスポート先',
-    designNewProjectTitle: '新しいデザインプロジェクト', designProjectNamePlaceholder: 'プロジェクト名', designFormatHtml: '純粋なHTML', designFormatVue: 'Vue', designChooseFolder: 'フォルダを選択…', designCreateProject: 'プロジェクトを作成', designOpenExisting: '既存のプロジェクトを開く…', designPageTitleLabel: 'タイトル', designPageDescLabel: '説明', designSave: '保存', designSaved: '保存しました',
+    designTitle: 'ビジュアルデザイン', designExportHtml: 'HTMLとしてエクスポート', designExportVue: 'Quasarとしてエクスポート', designExported: 'エクスポート先',
+    designNewProjectTitle: '新しいデザインプロジェクト', designProjectNamePlaceholder: 'プロジェクト名', designFormatHtml: '純粋なHTML', designFormatVue: 'Quasar (Vue 3)', designChooseFolder: 'フォルダを選択…', designCreateProject: 'プロジェクトを作成', designOpenExisting: '既存のプロジェクトを開く…', designPageTitleLabel: 'タイトル', designPageDescLabel: '説明', designSave: '保存', designSaved: '保存しました',
     designAddPage: 'ページを追加', designNewPagePlaceholder: 'ページ名', designBackToMap: '← マップに戻る', designSaveMap: 'マップを保存', designDeletePage: 'ページを削除',
     designAiPlaceholder: '生成したい内容を説明してください（例:「3つのプランがある料金セクション」）', designAiGenerate: '✦ 生成', designAiGenerating: '生成中…', designAiNoKey: 'まずAIアシスタントパネルでAIプロバイダーを設定してください',
     containers: 'コンテナ', showAllContainers: 'すべてのコンテナを表示', allLabel: 'すべて', runningLabel: '実行中', usingRuntime: '使用中', installPodmanHint: 'このパネルを使うには Podman（podman.io）または Docker をインストールしてください。', noContainers: 'コンテナがありません', startContainer: '起動', stopContainer: '停止', restartContainer: '再起動', viewLogs: 'ログを表示', removeContainer: '削除', confirmRemoveContainer: 'このコンテナを削除しますか？', noLogsYet: 'まだログがありません',
@@ -1084,8 +1095,8 @@ const strings = {
     createDbIfNotExists: 'Создать базу данных, если её нет', creatingDatabase: 'Создание базы данных…',
     erDiagramTitle: 'ER-диаграмма', erAutoArrange: 'Авторасположение', erResetView: 'Сбросить вид', erZoomToFit: 'Вписать в экран', erNewRelationship: 'Новая связь',
     browserPreviewTitle: 'Просмотр в браузере', browserGoTitle: 'Перейти', browserOpenExternalTitle: 'Открыть во внешнем браузере', browserRotateTitle: 'Повернуть устройство', 
-    designTitle: 'Визуальный дизайн', designExportHtml: 'Экспорт в HTML', designExportVue: 'Экспорт в Vue', designExported: 'Экспортировано в',
-    designNewProjectTitle: 'Новый проект дизайна', designProjectNamePlaceholder: 'Название проекта', designFormatHtml: 'Чистый HTML', designFormatVue: 'Vue', designChooseFolder: 'Выбрать папку…', designCreateProject: 'Создать проект', designOpenExisting: 'Открыть существующий проект…', designPageTitleLabel: 'Заголовок', designPageDescLabel: 'Описание', designSave: 'Сохранить', designSaved: 'Сохранено',
+    designTitle: 'Визуальный дизайн', designExportHtml: 'Экспорт в HTML', designExportVue: 'Экспорт в Quasar', designExported: 'Экспортировано в',
+    designNewProjectTitle: 'Новый проект дизайна', designProjectNamePlaceholder: 'Название проекта', designFormatHtml: 'Чистый HTML', designFormatVue: 'Quasar (Vue 3)', designChooseFolder: 'Выбрать папку…', designCreateProject: 'Создать проект', designOpenExisting: 'Открыть существующий проект…', designPageTitleLabel: 'Заголовок', designPageDescLabel: 'Описание', designSave: 'Сохранить', designSaved: 'Сохранено',
     designAddPage: 'Добавить страницу', designNewPagePlaceholder: 'Название страницы', designBackToMap: '← Назад к карте', designSaveMap: 'Сохранить карту', designDeletePage: 'Удалить страницу',
     designAiPlaceholder: 'Опиши, что сгенерировать (напр. "блок с ценами на 3 плана")', designAiGenerate: '✦ Сгенерировать', designAiGenerating: 'Генерация…', designAiNoKey: 'Сначала настрой провайдера ИИ в панели ИИ-ассистента',
     containers: 'Контейнеры', showAllContainers: 'Показать все контейнеры', allLabel: 'Все', runningLabel: 'Запущенные', usingRuntime: 'Используется', installPodmanHint: 'Установите Podman (podman.io) или Docker, чтобы использовать эту панель.', noContainers: 'Нет контейнеров', startContainer: 'Запустить', stopContainer: 'Остановить', restartContainer: 'Перезапустить', viewLogs: 'Показать логи', removeContainer: 'Удалить', confirmRemoveContainer: 'Удалить этот контейнер?', noLogsYet: 'Логов пока нет',
@@ -1104,12 +1115,16 @@ const strings = {
 } as const
 
 type StringKey = keyof typeof strings['en']
+export type { ExtraKey }
 
 export function useI18n() {
-  function t(key: StringKey): string {
+  function t(key: StringKey | ExtraKey, params?: Record<string, string | number>): string {
     const loc = locale.value
     const table = strings[loc] as Record<string, string>
-    return table[key] ?? (strings['en'] as Record<string, string>)[key] ?? key
+    const extra = extraByLocale[loc]
+    let out = table[key] ?? extra[key] ?? (extraEn as Record<string, string>)[key] ?? (strings['en'] as Record<string, string>)[key] ?? key
+    if (params) for (const [k, v] of Object.entries(params)) out = out.split(`{${k}}`).join(String(v))
+    return out
   }
 
   function setLocale(l: Locale) {
