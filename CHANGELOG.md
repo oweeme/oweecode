@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1
+
+### Correcciones
+- El editor mostraba el código en blanco (texto invisible y numeración rota) en la versión instalada: el CSP bloqueaba los estilos que CodeMirror añade dinámicamente.
+
 ## 1.5.0
 
 ### Novedades
