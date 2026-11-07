@@ -539,6 +539,13 @@ export const extraEn = {
   owYes: 'Yes', owNo: 'No', owNoProject: 'This room is not linked to a project. Link it from Oweeme (convert a proposal into a project or create the room from the project).',
   owBack: 'Board', owMoveTo: 'Move to', owComments: 'Comments', owCommentPh: 'Write a comment…', owComment: 'Comment',
   owWorkingOn: 'Working on', owNewTask: 'New task (Enter) — goes to the first column',
+  owShareImage: "Image or screenshot…",
+  owDefaultImage: "Look at this:",
+  owImageTooLarge: "Could not compress the image below 300 KB. Try a smaller area.",
+  owImageHint: "Tip: capture with OweeCapture (Ctrl+Alt+S) and paste it in the message box with Ctrl+V. It is compressed below 300 KB.",
+  owCompressing: "Compressing image…",
+  owNeedSdlc: "Your token only allows the chat. To see tasks: create a new token in Oweeme → Team chat → Tokens for OweeCode, then press «Change token» and paste it.",
+  owChangeToken: "Change token",
 } as const
 
 export const extraEs: Record<keyof typeof extraEn, string> = {
@@ -1077,6 +1084,13 @@ export const extraEs: Record<keyof typeof extraEn, string> = {
   owYes: 'Sí', owNo: 'No', owNoProject: 'Esta sala no está vinculada a un proyecto. Vincúlala desde Oweeme (convierte una propuesta en proyecto o crea la sala desde el proyecto).',
   owBack: 'Tablero', owMoveTo: 'Mover a', owComments: 'Comentarios', owCommentPh: 'Escribe un comentario…', owComment: 'Comentar',
   owWorkingOn: 'Trabajando en', owNewTask: 'Nueva tarea (Enter) — va a la primera columna',
+  owShareImage: "Imagen o captura…",
+  owDefaultImage: "Mira esto:",
+  owImageTooLarge: "No se pudo comprimir la imagen por debajo de 300 KB. Prueba con un área más pequeña.",
+  owImageHint: "Consejo: captura con OweeCapture (Ctrl+Alt+S) y pégala en el mensaje con Ctrl+V. Se comprime a menos de 300 KB.",
+  owCompressing: "Comprimiendo imagen…",
+  owNeedSdlc: "Tu token solo permite el chat. Para ver las tareas: crea un token nuevo en Oweeme → Chat de equipo → Tokens para OweeCode, pulsa «Cambiar token» y pégalo.",
+  owChangeToken: "Cambiar token",
 }
 
 export type ExtraKey = keyof typeof extraEn

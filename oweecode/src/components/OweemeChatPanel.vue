@@ -15,6 +15,7 @@ import { useI18n } from '../composables/useI18n'
 import { OWEEME_SERVERS, useOweemeChat, type OweemeAttachment } from '../composables/useOweemeChat'
 import { taskKeyFromText, useOweemeTasks } from '../composables/useOweemeTasks'
 import { useOweemeShare, type PreviewShare } from '../composables/useOweemeShare'
+import { compressForChat } from '../composables/imageCompress'
 
 const store = useEditorStore()
 const { t } = useI18n()
@@ -38,6 +39,11 @@ const commentText = ref('')
 const newTaskTitle = ref('')
 const notice = ref('')
 const pendingCommit = ref<{ key: string; message: string } | null>(null)
+const imageInput = ref<HTMLInputElement | null>(null)
+const lightbox = ref<string | null>(null)
+const compressing = ref(false)
+// An old token (chat only) gets 403 on tasks: explain how to fix it instead of the raw error.
+const needsNewToken = computed(() => /not allowed for this endpoint/i.test(chat.error.value))
 
 const serverOptions = computed(() => [...OWEEME_SERVERS, { label: t('owCustomServer'), url: '' }])
 const isPreset = computed(() => OWEEME_SERVERS.some((s) => s.url === chat.baseUrl.value))
@@ -77,8 +83,34 @@ async function connect() {
 }
 
 // ── sharing ────────────────────────────────────────────────────────────────
+/** Screenshot or image → compressed below 300 KB → attached to the next message. */
+async function attachImage(file: Blob | null | undefined, name = 'captura') {
+  if (!file || !file.type.startsWith('image/')) return
+  compressing.value = true
+  try {
+    const img = await compressForChat(file)
+    attach.value = { kind: 'image', name: `${name} · ${img.width}×${img.height} · ${Math.round(img.bytes / 1024)} KB`, content: img.dataUrl }
+    if (!text.value.trim()) text.value = t('owDefaultImage')
+  } catch {
+    flash(t('owImageTooLarge'))
+  } finally {
+    compressing.value = false
+  }
+}
+function onPaste(e: ClipboardEvent) {
+  const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))
+  if (!item) return
+  e.preventDefault()
+  void attachImage(item.getAsFile())
+}
+function onDrop(e: DragEvent) {
+  const file = [...(e.dataTransfer?.files ?? [])].find((f) => f.type.startsWith('image/'))
+  if (file) void attachImage(file, file.name.replace(/\.[^.]+$/, ''))
+}
+
 async function pick(kind: OweemeAttachment['kind']) {
   showShareMenu.value = false
+  if (kind === 'image') { imageInput.value?.click(); return }
   const a = kind === 'code' ? share.selection() : kind === 'file' ? share.currentFile() : kind === 'flow' ? share.flow() : await share.preview()
   if (!a) { flash(t(({ code: 'owNoSelection', file: 'owNoFile', flow: 'owNoFlow', preview: 'owNoPreview' } as const)[kind])); return }
   attach.value = a
@@ -182,7 +214,14 @@ onUnmounted(() => {
       </span>
     </div>
 
-    <div v-if="chat.error.value" class="ow-error">{{ chat.error.value }}</div>
+    <div v-if="needsNewToken" class="ow-banner">
+      <span>{{ t('owNeedSdlc') }}</span>
+      <div class="ow-row">
+        <button class="ow-btn" @click="openUrl(webBase + '/dashboard/professional/team')">{{ t('owOpenTokens') }}</button>
+        <button class="ow-btn ow-btn-main" @click="chat.disconnect()">{{ t('owChangeToken') }}</button>
+      </div>
+    </div>
+    <div v-else-if="chat.error.value" class="ow-error">{{ chat.error.value }}</div>
     <div v-if="notice" class="ow-notice">{{ notice }}</div>
 
     <!-- Not connected: server + token -->
@@ -245,6 +284,10 @@ onUnmounted(() => {
                   <button class="ow-link" @click="openShared(m.attachment)">{{ t('owOpenInProject') }}</button>
                 </div>
               </template>
+              <template v-else-if="m.attachment.kind === 'image'">
+                <img :src="m.attachment.content" :alt="m.attachment.name" class="ow-img" @click="lightbox = m.attachment.content" />
+                <div class="ow-dim ow-small">{{ m.attachment.name }}</div>
+              </template>
               <template v-else-if="m.attachment.kind === 'flow'">
                 <div class="ow-att-head">🔀 {{ t('owFlow') }}: {{ m.attachment.name }} <span class="ow-dim">({{ flowSize(m.attachment) }})</span></div>
                 <div class="ow-att-actions"><button class="ow-link" @click="importFlow(m.attachment)">{{ t('owImportFlow') }}</button></div>
@@ -262,12 +305,14 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div v-if="chat.activeRoom.value" class="ow-composer">
+        <div v-if="chat.activeRoom.value" class="ow-composer" @dragover.prevent @drop.prevent="onDrop">
+          <div v-if="compressing" class="ow-attach"><span>🖼 {{ t('owCompressing') }}</span></div>
           <div v-if="attach" class="ow-attach">
-            <span class="ow-ellipsis">{{ ({ code: '✂', file: '📄', flow: '🔀', preview: '🌐' })[attach.kind] }} {{ attach.name }}</span>
+            <img v-if="attach.kind === 'image'" :src="attach.content" class="ow-thumb" alt="" />
+            <span class="ow-ellipsis">{{ ({ code: '✂', file: '📄', flow: '🔀', preview: '🌐', image: '🖼' })[attach.kind] }} {{ attach.name }}</span>
             <button class="ow-icon-btn" @click="attach = null">✕</button>
           </div>
-          <textarea v-model="text" class="ow-input ow-textarea" rows="2" :placeholder="t('owMessagePh')" @keydown.enter.exact.prevent="send" />
+          <textarea v-model="text" class="ow-input ow-textarea" rows="2" :placeholder="t('owMessagePh')" @keydown.enter.exact.prevent="send" @paste="onPaste" />
           <div class="ow-row" style="position: relative">
             <button class="ow-btn" @click.stop="showShareMenu = !showShareMenu">＋ {{ t('owShare') }}</button>
             <div v-if="showShareMenu" class="ow-menu" @click.stop>
@@ -275,7 +320,10 @@ onUnmounted(() => {
               <button @click="pick('file')">📄 {{ t('owShareFile') }}</button>
               <button @click="pick('flow')">🔀 {{ t('owShareFlow') }}</button>
               <button @click="pick('preview')">🌐 {{ t('owSharePreview') }}</button>
+              <button @click="pick('image')">🖼 {{ t('owShareImage') }}</button>
+              <div class="ow-menu-hint">{{ t('owImageHint') }}</div>
             </div>
+            <input ref="imageInput" type="file" accept="image/*" hidden @change="attachImage(($event.target as HTMLInputElement).files?.[0]); ($event.target as HTMLInputElement).value = ''" />
             <span class="ow-spacer" />
             <button class="ow-btn ow-btn-main" :disabled="!text.trim() || sending" @click="send">{{ t('owSend') }}</button>
           </div>
@@ -335,6 +383,7 @@ onUnmounted(() => {
         </div>
       </template>
     </template>
+    <div v-if="lightbox" class="ow-lightbox" @click="lightbox = null"><img :src="lightbox" alt="" /></div>
   </div>
 </template>
 
@@ -387,6 +436,11 @@ onUnmounted(() => {
 .ow-menu button { background: none; border: none; color: var(--fg); text-align: left; padding: 6px 8px; border-radius: 4px; cursor: pointer; font: inherit; }
 .ow-menu button:hover { background: var(--bg-hover); }
 .ow-row { display: flex; gap: 6px; align-items: center; }
+.ow-img { max-width: 100%; max-height: 220px; border-radius: 6px; cursor: zoom-in; display: block; border: 1px solid var(--border); }
+.ow-thumb { width: 28px; height: 28px; object-fit: cover; border-radius: 4px; flex: none; }
+.ow-menu-hint { font-size: 10px; color: var(--fg-muted); padding: 4px 8px 2px; line-height: 1.4; border-top: 1px solid var(--border); margin-top: 2px; }
+.ow-lightbox { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.8); display: grid; place-items: center; cursor: zoom-out; }
+.ow-lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 .ow-spacer { flex: 1; }
 .ow-banner { margin: 8px 12px 0; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 6px; display: flex; flex-direction: column; gap: 6px; line-height: 1.4; }
 .ow-current { text-align: left; background: var(--bg-active); border: 1px solid var(--accent); color: var(--fg); border-radius: 6px; padding: 6px 8px; cursor: pointer; font: inherit; }

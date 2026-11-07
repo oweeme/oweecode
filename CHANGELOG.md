@@ -9,6 +9,8 @@
 - Crear salas desde el editor (con el repositorio del proyecto ya rellenado) y elegir servidor: oweeme.com, `oweeme_pod` local u otro.
 - **Compartir en el chat:** código seleccionado, el archivo activo completo, tu flujo de la pestaña Flujos y tu vista previa del navegador (con la dirección de tu red local para que el equipo la abra). Lo que comparten los demás se abre con un clic: abrir el archivo en tu proyecto, importar el flujo o abrir la vista previa.
 - **Pestaña Tareas:** el tablero del proyecto vinculado a la sala. Abrir una tarea, comentarla y moverla de columna; el cliente ve el cambio en su propuesta de Oweeme.
+- **Capturas en el chat:** pega una captura con Ctrl+V (OweeCapture la deja en el portapapeles con Ctrl+Alt+S), arrástrala o elígela; se comprime sola a menos de 300 KB.
+- Si tu token es antiguo (solo chat), el panel explica cómo crear uno nuevo con permiso de tareas y ofrece «Cambiar token».
 - **Tareas y Git:** la rama `bella-7-paypal` muestra «Trabajando en BELLA-7»; tras un commit que menciona la tarea, OweeCode ofrece comentarlo en ella y pasarla a Revisión.
 
 ## 1.5.0

@@ -597,4 +597,11 @@ export const extraKo: Partial<Record<ExtraKey, string>> = {
   owComment: "댓글 달기",
   owWorkingOn: "작업 중",
   owNewTask: "새 작업 (Enter) — 첫 번째 열에 추가됩니다",
+  owShareImage: "이미지 또는 스크린샷…",
+  owDefaultImage: "이것 보세요:",
+  owImageTooLarge: "이미지를 300KB 이하로 압축할 수 없습니다. 더 작은 영역을 시도하세요.",
+  owImageHint: "팁: OweeCapture(Ctrl+Alt+S)로 캡처한 뒤 메시지 칸에 Ctrl+V로 붙여넣으세요. 300KB 이하로 압축됩니다.",
+  owCompressing: "이미지 압축 중…",
+  owNeedSdlc: "토큰에 채팅 권한만 있습니다. 작업을 보려면 Oweeme → 팀 채팅 → OweeCode용 토큰에서 새 토큰을 만들고 «토큰 변경»을 눌러 붙여넣으세요.",
+  owChangeToken: "토큰 변경",
 }

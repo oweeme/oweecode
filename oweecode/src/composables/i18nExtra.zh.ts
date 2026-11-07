@@ -597,4 +597,11 @@ export const extraZh: Partial<Record<ExtraKey, string>> = {
   owComment: "评论",
   owWorkingOn: "正在处理",
   owNewTask: "新任务（Enter）— 放入第一列",
+  owShareImage: "图片或截图…",
+  owDefaultImage: "看看这个：",
+  owImageTooLarge: "无法将图片压缩到 300 KB 以下。请尝试更小的区域。",
+  owImageHint: "提示：用 OweeCapture（Ctrl+Alt+S）截图，然后在消息框中按 Ctrl+V 粘贴。会压缩到 300 KB 以下。",
+  owCompressing: "正在压缩图片…",
+  owNeedSdlc: "你的令牌只允许聊天。要查看任务：在 Oweeme → 团队聊天 → OweeCode 令牌 中创建新令牌，点击 «更换令牌» 并粘贴。",
+  owChangeToken: "更换令牌",
 }

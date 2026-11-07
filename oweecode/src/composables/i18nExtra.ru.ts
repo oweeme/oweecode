@@ -597,4 +597,11 @@ export const extraRu: Partial<Record<ExtraKey, string>> = {
   owComment: "Комментировать",
   owWorkingOn: "Работаю над",
   owNewTask: "Новая задача (Enter) — попадёт в первую колонку",
+  owShareImage: "Изображение или скриншот…",
+  owDefaultImage: "Посмотри:",
+  owImageTooLarge: "Не удалось сжать изображение до 300 КБ. Попробуй область поменьше.",
+  owImageHint: "Совет: сделай снимок в OweeCapture (Ctrl+Alt+S) и вставь его в сообщение через Ctrl+V. Он сожмётся до 300 КБ.",
+  owCompressing: "Сжатие изображения…",
+  owNeedSdlc: "Твой токен разрешает только чат. Чтобы видеть задачи: создай новый токен в Oweeme → Командный чат → Токены для OweeCode, нажми «Сменить токен» и вставь его.",
+  owChangeToken: "Сменить токен",
 }

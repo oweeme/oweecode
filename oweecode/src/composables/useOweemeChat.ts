@@ -19,7 +19,7 @@ export interface OweemeRoom {
 
 /** Something shared with a message. See useOweemeShare.ts for how each kind is built and opened. */
 export interface OweemeAttachment {
-  kind: 'code' | 'file' | 'flow' | 'preview'
+  kind: 'code' | 'file' | 'flow' | 'preview' | 'image'
   name: string
   content: string
 }

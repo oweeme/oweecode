@@ -595,4 +595,11 @@ export const extraDe: Partial<Record<ExtraKey, string>> = {
   owComment: "Kommentieren",
   owWorkingOn: "Arbeite an",
   owNewTask: "Neue Aufgabe (Enter) — landet in der ersten Spalte",
+  owShareImage: "Bild oder Screenshot…",
+  owDefaultImage: "Schau mal:",
+  owImageTooLarge: "Das Bild ließ sich nicht unter 300 KB komprimieren. Versuche einen kleineren Bereich.",
+  owImageHint: "Tipp: mit OweeCapture (Strg+Alt+S) aufnehmen und mit Strg+V in die Nachricht einfügen. Es wird unter 300 KB komprimiert.",
+  owCompressing: "Bild wird komprimiert…",
+  owNeedSdlc: "Dein Token erlaubt nur den Chat. Für Aufgaben: erstelle ein neues Token in Oweeme → Team-Chat → Tokens für OweeCode, klicke auf «Token ändern» und füge es ein.",
+  owChangeToken: "Token ändern",
 }

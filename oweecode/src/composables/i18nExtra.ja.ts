@@ -597,4 +597,11 @@ export const extraJa: Partial<Record<ExtraKey, string>> = {
   owComment: "コメントする",
   owWorkingOn: "作業中",
   owNewTask: "新しいタスク（Enter）— 最初の列に追加されます",
+  owShareImage: "画像またはスクリーンショット…",
+  owDefaultImage: "これを見て：",
+  owImageTooLarge: "画像を 300 KB 以下に圧縮できませんでした。もっと小さい範囲で試してください。",
+  owImageHint: "ヒント: OweeCapture（Ctrl+Alt+S）でキャプチャし、メッセージ欄に Ctrl+V で貼り付けてください。300 KB 以下に圧縮されます。",
+  owCompressing: "画像を圧縮中…",
+  owNeedSdlc: "このトークンはチャットのみ許可されています。タスクを見るには Oweeme → チームチャット → OweeCode 用トークン で新しいトークンを作成し、«トークンを変更» を押して貼り付けてください。",
+  owChangeToken: "トークンを変更",
 }

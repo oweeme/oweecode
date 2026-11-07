@@ -595,4 +595,11 @@ export const extraFr: Partial<Record<ExtraKey, string>> = {
   owComment: "Commenter",
   owWorkingOn: "Je travaille sur",
   owNewTask: "Nouvelle tâche (Entrée) — va dans la première colonne",
+  owShareImage: "Image ou capture…",
+  owDefaultImage: "Regarde ça :",
+  owImageTooLarge: "Impossible de compresser l’image sous 300 Ko. Essaie une zone plus petite.",
+  owImageHint: "Astuce : capture avec OweeCapture (Ctrl+Alt+S) et colle-la dans le message avec Ctrl+V. Elle est compressée sous 300 Ko.",
+  owCompressing: "Compression de l’image…",
+  owNeedSdlc: "Ton jeton ne permet que le chat. Pour voir les tâches : crée un nouveau jeton dans Oweeme → Chat d’équipe → Jetons pour OweeCode, clique sur «Changer de jeton» et colle-le.",
+  owChangeToken: "Changer de jeton",
 }
