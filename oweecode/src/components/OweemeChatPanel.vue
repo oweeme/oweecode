@@ -121,7 +121,12 @@ async function send() {
   if (!text.value.trim() || sending.value) return
   sending.value = true
   const context = attach.value && (attach.value.kind === 'code' || attach.value.kind === 'file') ? [attach.value.name, branch.value].filter(Boolean).join(' · ') : ''
-  if (await chat.send(text.value, context, attach.value)) {
+  const hadAttachment = !!attach.value
+  const sent = await chat.send(text.value, context, attach.value)
+  if (sent) {
+    // An app whose Rust core is older than the panel drops the attachment silently:
+    // say so instead of leaving the user wondering where the image went.
+    if (hadAttachment && !sent.attachment) chat.error.value = t('owRestartNeeded')
     text.value = ''
     attach.value = null
   }

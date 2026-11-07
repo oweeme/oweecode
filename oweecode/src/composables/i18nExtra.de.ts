@@ -602,4 +602,5 @@ export const extraDe: Partial<Record<ExtraKey, string>> = {
   owCompressing: "Bild wird komprimiert…",
   owNeedSdlc: "Dein Token erlaubt nur den Chat. Für Aufgaben: erstelle ein neues Token in Oweeme → Team-Chat → Tokens für OweeCode, klicke auf «Token ändern» und füge es ein.",
   owChangeToken: "Token ändern",
+  owRestartNeeded: "Der Anhang ist nicht angekommen: der App-Kern ist eine ältere Version. Schließe OweeCode (Strg+C im Terminal) und starte «npm run tauri dev» erneut.",
 }

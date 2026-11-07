@@ -546,6 +546,7 @@ export const extraEn = {
   owCompressing: "Compressing image…",
   owNeedSdlc: "Your token only allows the chat. To see tasks: create a new token in Oweeme → Team chat → Tokens for OweeCode, then press «Change token» and paste it.",
   owChangeToken: "Change token",
+  owRestartNeeded: "The attachment did not arrive: the app core is from an older version. Close OweeCode (Ctrl+C in the terminal) and run «npm run tauri dev» again.",
 } as const
 
 export const extraEs: Record<keyof typeof extraEn, string> = {
@@ -1091,6 +1092,7 @@ export const extraEs: Record<keyof typeof extraEn, string> = {
   owCompressing: "Comprimiendo imagen…",
   owNeedSdlc: "Tu token solo permite el chat. Para ver las tareas: crea un token nuevo en Oweeme → Chat de equipo → Tokens para OweeCode, pulsa «Cambiar token» y pégalo.",
   owChangeToken: "Cambiar token",
+  owRestartNeeded: "El adjunto no llegó: el núcleo de la app es de una versión anterior. Cierra OweeCode (Ctrl+C en la terminal) y vuelve a ejecutar «npm run tauri dev».",
 }
 
 export type ExtraKey = keyof typeof extraEn

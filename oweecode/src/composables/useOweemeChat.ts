@@ -144,7 +144,7 @@ export function useOweemeChat() {
       invoke<OweemeMessage>('oweeme_send', { base: baseUrl.value, room: activeRoomId.value, message: message.trim(), codeContext, attachment }),
     )
     if (sent) messages.value = [...messages.value, sent]
-    return !!sent
+    return sent
   }
 
   async function createRoom(name: string, repositoryUrl: string) {
