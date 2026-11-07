@@ -34,6 +34,7 @@ mod lsp;
 mod tools;
 mod secrets;
 mod devserver;
+mod oweeme;
 
 use agent::*;
 use db::*;
@@ -50,6 +51,7 @@ use lsp::*;
 use tools::*;
 use secrets::*;
 use devserver::*;
+use oweeme::*;
 
 // Running via `npm run tauri dev` attaches this process to the terminal's
 // controlling tty and foreground process group — so an accidental Ctrl+Z (or
@@ -207,6 +209,13 @@ pub fn run() {
             lsp_check_installed,
             install_dev_tool,
             secret_set,
+            oweeme_connect,
+            oweeme_disconnect,
+            oweeme_has_token,
+            oweeme_rooms,
+            oweeme_messages,
+            oweeme_send,
+            oweeme_create_room,
             secret_get,
             secret_delete,
             scan_project_graph,

@@ -8,6 +8,7 @@ import AiPanel from './components/AiPanel.vue'
 import DatabasePanel from './components/DatabasePanel.vue'
 import FtpPanel from './components/FtpPanel.vue'
 import RedisPanel from './components/RedisPanel.vue'
+import OweemeChatPanel from './components/OweemeChatPanel.vue'
 import GitPanel from './components/GitPanel.vue'
 import ContainerPanel from './components/ContainerPanel.vue'
 import SearchPanel from './components/SearchPanel.vue'
@@ -32,7 +33,7 @@ useAppTheme() // applies the saved theme attribute before first paint
 const sidebarWidth = ref(240)
 const isSideResizing = ref(false)
 const showSidebar = ref(true)
-const sidebarView = ref<'explorer' | 'search' | 'ai' | 'database' | 'ftp' | 'redis' | 'api' | 'git' | 'containers'>('explorer')
+const sidebarView = ref<'explorer' | 'search' | 'ai' | 'database' | 'ftp' | 'redis' | 'api' | 'git' | 'containers' | 'oweeme'>('explorer')
 
 // Settings / About / Preferences
 const showAbout = ref(false)
@@ -147,7 +148,7 @@ function isTextInputTarget(e: KeyboardEvent): boolean {
   return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
 }
 
-function focusSidebarPanel(view: 'explorer' | 'search' | 'ai' | 'database' | 'ftp' | 'redis' | 'api' | 'git' | 'containers') {
+function focusSidebarPanel(view: typeof sidebarView.value) {
   if (sidebarView.value === view) { showSidebar.value = !showSidebar.value }
   else { sidebarView.value = view; showSidebar.value = true }
 }
@@ -448,6 +449,7 @@ function onDbOpenTable(connId: string, tableName: string, connName: string, driv
       <GitPanel v-else-if="sidebarView === 'git'" />
       <ContainerPanel v-else-if="sidebarView === 'containers'" />
       <ApiCollections v-else-if="sidebarView === 'api'" ref="apiCollRef" />
+      <OweemeChatPanel v-else-if="sidebarView === 'oweeme'" />
     </aside>
 
     <!-- Activity bar -->
@@ -580,6 +582,18 @@ function onDbOpenTable(connId: string, tableName: string, connName: string, driv
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="2" y="3" width="20" height="18" rx="2"/>
           <path d="M8 10l3 3-3 3M13 16h3"/>
+        </svg>
+      </button>
+      <!-- Oweeme team chat -->
+      <button
+        class="activity-btn"
+        :class="{ active: showSidebar && sidebarView === 'oweeme' }"
+        title="Oweeme"
+        @click="sidebarView === 'oweeme' ? showSidebar = !showSidebar : (sidebarView = 'oweeme', showSidebar = true)"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/>
+          <path d="M8.5 13.5c1.6-2.6 4.9-3.2 7-1.2-1.6.4-2.6 1.6-3 3"/>
         </svg>
       </button>
       <!-- AI — one grouped entry point: chat assistant + every AI CLI -->

@@ -520,6 +520,15 @@ export const extraEn = {
   cAiderHint: 'Independent of the Chat panel — each CLI can use its own model without losing the context of the current project.',
   tPtyErr: 'Error starting the PTY: {e}',
   tPtyHint: 'Make sure the command exists on the system.',
+  // Oweeme team chat panel
+  owConnectLead: 'Chat with your team on Oweeme without leaving the editor. Connect with a personal token; it is stored in the system keychain.',
+  owServer: 'Server', owCustomServer: 'Other server…', owToken: 'OweeCode token',
+  owConnect: 'Connect', owConnecting: 'Connecting…', owDisconnect: 'Disconnect', owRefresh: 'Refresh rooms',
+  owTokenHint: 'Create it on the web in Team chat → Tokens for OweeCode. It is shown only once.', owOpenTokens: 'Open Oweeme',
+  owNewRoom: 'New room', owRoomName: 'Room name', owRoomRepo: 'Repository (optional)', owCreate: 'Create', owCancel: 'Cancel',
+  owPickRoom: 'Choose a room…', owNoRooms: 'No rooms yet — create one with +', owPickRoomHint: 'Choose a room. If one is linked to this project repository, it opens by itself.',
+  owMessagePh: 'Message (Enter sends, Shift+Enter new line)', owAttach: 'Attach selection', owSelectFirst: 'Select code in the editor first',
+  owSelection: 'selection', owLines: 'lines', owSend: 'Send',
 } as const
 
 export const extraEs: Record<keyof typeof extraEn, string> = {
@@ -1040,6 +1049,14 @@ export const extraEs: Record<keyof typeof extraEn, string> = {
   cAiderHint: 'Independiente del panel de Chat — cada CLI puede usar su propio modelo sin perder el contexto del proyecto actual.',
   tPtyErr: 'Error iniciando PTY: {e}',
   tPtyHint: 'Asegúrate de que el comando existe en el sistema.',
+  owConnectLead: 'Chatea con tu equipo de Oweeme sin salir del editor. Conéctate con un token personal; se guarda en el llavero del sistema.',
+  owServer: 'Servidor', owCustomServer: 'Otro servidor…', owToken: 'Token de OweeCode',
+  owConnect: 'Conectar', owConnecting: 'Conectando…', owDisconnect: 'Desconectar', owRefresh: 'Actualizar salas',
+  owTokenHint: 'Créalo en la web, en Chat de equipo → Tokens para OweeCode. Solo se muestra una vez.', owOpenTokens: 'Abrir Oweeme',
+  owNewRoom: 'Nueva sala', owRoomName: 'Nombre de la sala', owRoomRepo: 'Repositorio (opcional)', owCreate: 'Crear', owCancel: 'Cancelar',
+  owPickRoom: 'Elige una sala…', owNoRooms: 'Aún no hay salas — crea una con +', owPickRoomHint: 'Elige una sala. Si alguna está vinculada al repositorio de este proyecto, se abre sola.',
+  owMessagePh: 'Mensaje (Enter envía, Shift+Enter nueva línea)', owAttach: 'Adjuntar selección', owSelectFirst: 'Primero selecciona código en el editor',
+  owSelection: 'selección', owLines: 'líneas', owSend: 'Enviar',
 }
 
 export type ExtraKey = keyof typeof extraEn

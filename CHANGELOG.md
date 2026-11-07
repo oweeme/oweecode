@@ -1,5 +1,13 @@
 # Changelog
 
+## Sin publicar (rama `oweeme-chat`)
+
+### Novedades
+- **Chat de equipo de Oweeme dentro del editor:** nuevo panel **Oweeme** en la barra lateral. Te conectas con un token personal `owc_` (se crea en oweeme.com → Chat de equipo → Tokens) que se guarda en el llavero del sistema y nunca pasa por la interfaz web; las peticiones salen desde Rust.
+- La sala cuyo repositorio coincide con el `remote` de Git del proyecto abierto se abre sola (SSH, HTTPS y `.git` se reconocen como el mismo repositorio).
+- **Adjuntar selección:** envía el código seleccionado con su archivo y rama como contexto.
+- Crear salas desde el editor (con el repositorio del proyecto ya rellenado) y elegir servidor: oweeme.com, `oweeme_pod` local u otro.
+
 ## 1.5.0
 
 ### Novedades

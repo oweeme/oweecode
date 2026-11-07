@@ -137,6 +137,12 @@ Un agente con acceso real al proyecto, corriendo 100% en tu máquina — pensado
 - Subir, descargar, crear y eliminar archivos/carpetas remotas
 - Edición directa de archivos remotos en el editor
 
+### 💬 Chat de equipo de Oweeme
+- Panel **Oweeme** en la barra lateral: salas de tu equipo en [oweeme.com](https://oweeme.com) sin salir del editor
+- Conexión con un token personal `owc_`, guardado en el llavero del sistema (solo tiene permiso para el chat)
+- Abre sola la sala vinculada al repositorio Git del proyecto
+- **Adjuntar selección:** comparte el código seleccionado con su `archivo · rama`
+
 ### ⚡ Cliente API REST
 - Constructor de peticiones HTTP (GET, POST, PUT, DELETE, PATCH)
 - Headers, params, body (JSON, form-data, raw)
