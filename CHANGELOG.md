@@ -1,6 +1,6 @@
 # Changelog
 
-## Sin publicar (rama `oweeme-chat`)
+## Sin publicar (rama `oweeme-chat`, próxima 1.6.0)
 
 ### Novedades
 - **Chat de equipo de Oweeme dentro del editor:** nuevo panel **Oweeme** en la barra lateral. Te conectas con un token personal `owc_` (se crea en oweeme.com → Chat de equipo → Tokens) que se guarda en el llavero del sistema y nunca pasa por la interfaz web; las peticiones salen desde Rust.
@@ -12,6 +12,12 @@
 - **Capturas en el chat:** pega una captura con Ctrl+V (OweeCapture la deja en el portapapeles con Ctrl+Alt+S), arrástrala o elígela; se comprime sola a menos de 300 KB.
 - Si tu token es antiguo (solo chat), el panel explica cómo crear uno nuevo con permiso de tareas y ofrece «Cambiar token».
 - **Tareas y Git:** la rama `bella-7-paypal` muestra «Trabajando en BELLA-7»; tras un commit que menciona la tarea, OweeCode ofrece comentarlo en ella y pasarla a Revisión.
+- Los enlaces de los mensajes, comentarios y vistas previas compartidas se abren en el navegador del sistema.
+
+## 1.5.1
+
+### Correcciones
+- El editor mostraba el código en blanco (texto invisible y numeración rota) en la versión instalada: el CSP bloqueaba los estilos que CodeMirror añade dinámicamente.
 
 ## 1.5.0
 
