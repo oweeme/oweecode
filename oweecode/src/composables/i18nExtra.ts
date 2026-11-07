@@ -527,8 +527,18 @@ export const extraEn = {
   owTokenHint: 'Create it on the web in Team chat → Tokens for OweeCode. It is shown only once.', owOpenTokens: 'Open Oweeme',
   owNewRoom: 'New room', owRoomName: 'Room name', owRoomRepo: 'Repository (optional)', owCreate: 'Create', owCancel: 'Cancel',
   owPickRoom: 'Choose a room…', owNoRooms: 'No rooms yet — create one with +', owPickRoomHint: 'Choose a room. If one is linked to this project repository, it opens by itself.',
-  owMessagePh: 'Message (Enter sends, Shift+Enter new line)', owAttach: 'Attach selection', owSelectFirst: 'Select code in the editor first',
-  owSelection: 'selection', owLines: 'lines', owSend: 'Send',
+  owMessagePh: 'Message (Enter sends, Shift+Enter new line)', owLines: 'lines', owSend: 'Send',
+  owTabChat: 'Chat', owTabTasks: 'Tasks',
+  owShare: 'Share', owShareSelection: 'Code selection', owShareFile: 'Whole active file', owShareFlow: 'My flow (Flows tab)', owSharePreview: 'My browser preview',
+  owNoSelection: 'Select some code in the editor first.', owNoFile: 'Open a file in the editor first.', owNoFlow: 'The Flows tab is empty.', owNoPreview: 'Open the browser preview on a page first.',
+  owDefaultCode: 'Can you take a look at this?', owDefaultFile: 'Here is the file.', owDefaultFlow: 'Here is the flow I am designing.', owDefaultPreview: 'This is how it looks right now.',
+  owCopy: 'Copy', owCopied: 'Copied', owOpenInProject: 'Open in my project', owNotInProject: 'That file does not exist in your open project.',
+  owFlow: 'Flow', owImportFlow: 'Import into my Flows tab', owImportFlowConfirm: 'Replace your current flow with «{name}»? Yours is kept as a backup.',
+  owPreview: 'Preview', owOpenPreview: 'Open in my preview', owPreviewLocalOnly: 'Address on the sender’s computer: it only opens there (or share from the same network).',
+  owCommitAsk: 'Your commit mentions {key}. Comment it on the task and move it to Review?', owCommitComment: 'Commit:', owCommitLinked: 'Commit added to {key}',
+  owYes: 'Yes', owNo: 'No', owNoProject: 'This room is not linked to a project. Link it from Oweeme (convert a proposal into a project or create the room from the project).',
+  owBack: 'Board', owMoveTo: 'Move to', owComments: 'Comments', owCommentPh: 'Write a comment…', owComment: 'Comment',
+  owWorkingOn: 'Working on', owNewTask: 'New task (Enter) — goes to the first column',
 } as const
 
 export const extraEs: Record<keyof typeof extraEn, string> = {
@@ -1055,8 +1065,18 @@ export const extraEs: Record<keyof typeof extraEn, string> = {
   owTokenHint: 'Créalo en la web, en Chat de equipo → Tokens para OweeCode. Solo se muestra una vez.', owOpenTokens: 'Abrir Oweeme',
   owNewRoom: 'Nueva sala', owRoomName: 'Nombre de la sala', owRoomRepo: 'Repositorio (opcional)', owCreate: 'Crear', owCancel: 'Cancelar',
   owPickRoom: 'Elige una sala…', owNoRooms: 'Aún no hay salas — crea una con +', owPickRoomHint: 'Elige una sala. Si alguna está vinculada al repositorio de este proyecto, se abre sola.',
-  owMessagePh: 'Mensaje (Enter envía, Shift+Enter nueva línea)', owAttach: 'Adjuntar selección', owSelectFirst: 'Primero selecciona código en el editor',
-  owSelection: 'selección', owLines: 'líneas', owSend: 'Enviar',
+  owMessagePh: 'Mensaje (Enter envía, Shift+Enter nueva línea)', owLines: 'líneas', owSend: 'Enviar',
+  owTabChat: 'Chat', owTabTasks: 'Tareas',
+  owShare: 'Compartir', owShareSelection: 'Código seleccionado', owShareFile: 'Archivo activo completo', owShareFlow: 'Mi flujo (pestaña Flujos)', owSharePreview: 'Mi vista previa del navegador',
+  owNoSelection: 'Primero selecciona código en el editor.', owNoFile: 'Primero abre un archivo en el editor.', owNoFlow: 'La pestaña Flujos está vacía.', owNoPreview: 'Primero abre la vista previa en una página.',
+  owDefaultCode: '¿Puedes revisar esto?', owDefaultFile: 'Aquí está el archivo.', owDefaultFlow: 'Este es el flujo que estoy diseñando.', owDefaultPreview: 'Así se ve ahora mismo.',
+  owCopy: 'Copiar', owCopied: 'Copiado', owOpenInProject: 'Abrir en mi proyecto', owNotInProject: 'Ese archivo no existe en tu proyecto abierto.',
+  owFlow: 'Flujo', owImportFlow: 'Importar a mi pestaña Flujos', owImportFlowConfirm: '¿Reemplazar tu flujo actual por «{name}»? El tuyo queda como respaldo.',
+  owPreview: 'Vista previa', owOpenPreview: 'Abrir en mi vista previa', owPreviewLocalOnly: 'Dirección del equipo de quien lo envió: solo abre allí (o compártelo desde la misma red).',
+  owCommitAsk: 'Tu commit menciona {key}. ¿Lo comento en la tarea y la paso a Revisión?', owCommitComment: 'Commit:', owCommitLinked: 'Commit añadido a {key}',
+  owYes: 'Sí', owNo: 'No', owNoProject: 'Esta sala no está vinculada a un proyecto. Vincúlala desde Oweeme (convierte una propuesta en proyecto o crea la sala desde el proyecto).',
+  owBack: 'Tablero', owMoveTo: 'Mover a', owComments: 'Comentarios', owCommentPh: 'Escribe un comentario…', owComment: 'Comentar',
+  owWorkingOn: 'Trabajando en', owNewTask: 'Nueva tarea (Enter) — va a la primera columna',
 }
 
 export type ExtraKey = keyof typeof extraEn

@@ -136,12 +136,21 @@ function navigate(raw: string, paneIdx = active.value) {
   if (next === p.url) p.key++                      // same address: a real reload
   p.url = next; p.loading = !!next
   if (paneIdx === active.value) urlInput.value = next
+  rememberShared()
+}
+watch([deviceId, landscape], () => rememberShared())
+/** Keeps the tab's address and device up to date so the Oweeme panel can share "what I am previewing". */
+function rememberShared() {
+  const tab = store.state.tabs.find((x) => x.path === props.path)
+  if (!tab) return
+  tab.browserUrl = cur.value?.url ?? ''
+  tab.browserDevice = selectedDevice.value.label + (landscape.value ? ' ↻' : '')
 }
 const go = () => navigate(urlInput.value)
 function reload() { const p = cur.value; p.key++; p.loading = true; void scan() }
 function openPort(port: number) { showMenu.value = false; navigate(`http://localhost:${port}`) }
 async function openExternal() { try { if (cur.value.url) await openUrl(cur.value.url) } catch { /* ignore */ } }
-function setActive(i: number) { active.value = i; urlInput.value = panes.value[i].url }
+function setActive(i: number) { active.value = i; urlInput.value = panes.value[i].url; rememberShared() }
 function toggleSplit() {
   if (split.value) { panes.value.splice(1); setActive(0); return }
   const other = devPorts.value.find(p => `http://localhost:${p.port}` !== panes.value[0].url)

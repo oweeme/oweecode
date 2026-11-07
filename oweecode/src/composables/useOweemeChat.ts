@@ -10,9 +10,18 @@ export interface OweemeRoom {
   repositoryUrl: string | null
   workspaceName: string | null
   projectName: string | null
+  projectUuid: string | null
+  projectKey: string | null
   myRole: string
   memberCount: number
   messageCount: number
+}
+
+/** Something shared with a message. See useOweemeShare.ts for how each kind is built and opened. */
+export interface OweemeAttachment {
+  kind: 'code' | 'file' | 'flow' | 'preview'
+  name: string
+  content: string
 }
 
 export interface OweemeMessage {
@@ -20,6 +29,7 @@ export interface OweemeMessage {
   senderName: string
   message: string
   codeContext: string | null
+  attachment: OweemeAttachment | null
   isMine: boolean
   createdAt: string
 }
@@ -128,10 +138,10 @@ export function useOweemeChat() {
     return !!match
   }
 
-  async function send(message: string, codeContext: string) {
+  async function send(message: string, codeContext: string, attachment: OweemeAttachment | null = null) {
     if (!activeRoomId.value || !message.trim()) return false
     const sent = await run(() =>
-      invoke<OweemeMessage>('oweeme_send', { base: baseUrl.value, room: activeRoomId.value, message: message.trim(), codeContext }),
+      invoke<OweemeMessage>('oweeme_send', { base: baseUrl.value, room: activeRoomId.value, message: message.trim(), codeContext, attachment }),
     )
     if (sent) messages.value = [...messages.value, sent]
     return !!sent

@@ -141,7 +141,8 @@ Un agente con acceso real al proyecto, corriendo 100% en tu máquina — pensado
 - Panel **Oweeme** en la barra lateral: salas de tu equipo en [oweeme.com](https://oweeme.com) sin salir del editor
 - Conexión con un token personal `owc_`, guardado en el llavero del sistema (solo tiene permiso para el chat)
 - Abre sola la sala vinculada al repositorio Git del proyecto
-- **Adjuntar selección:** comparte el código seleccionado con su `archivo · rama`
+- **Compartir:** código seleccionado, archivo completo, tus flujos y tu vista previa; lo recibido se abre o importa con un clic
+- **Tareas del proyecto:** ver, comentar y mover tareas del tablero de Oweeme; la rama (`bella-7-…`) indica en qué tarea trabajas y los commits se enlazan a ella
 
 ### ⚡ Cliente API REST
 - Constructor de peticiones HTTP (GET, POST, PUT, DELETE, PATCH)

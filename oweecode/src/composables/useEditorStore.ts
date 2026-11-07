@@ -39,6 +39,7 @@ export interface Tab {
   containerName?: string
   // browser tab extras
   browserUrl?: string
+  browserDevice?: string
 }
 
 interface EditorState {

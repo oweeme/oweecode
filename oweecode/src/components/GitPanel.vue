@@ -156,7 +156,10 @@ async function doCommit(push = false) {
     if (staged.value.length === 0 && unstaged.value.length > 0) {
       await invoke('git_stage', { path: store.state.rootPath, files: unstaged.value.map(f => f.path) })
     }
-    await invoke('git_commit', { path: store.state.rootPath, message: commitMsg.value.trim() })
+    const committed = commitMsg.value.trim()
+    await invoke('git_commit', { path: store.state.rootPath, message: committed })
+    // Lets other panels react (the Oweeme panel offers to link the commit to its task).
+    window.dispatchEvent(new CustomEvent('oweecode-git-committed', { detail: { message: committed, root: store.state.rootPath } }))
     commitMsg.value = ''
     setMsg(t('commitCreated'))
     await refresh()

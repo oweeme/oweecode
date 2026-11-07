@@ -20,6 +20,8 @@ pub struct OweemeRoom {
     pub repository_url: Option<String>,
     pub workspace_name: Option<String>,
     pub project_name: Option<String>,
+    pub project_uuid: Option<String>,
+    pub project_key: Option<String>,
     pub my_role: String,
     pub member_count: i64,
     pub message_count: i64,
@@ -32,8 +34,17 @@ pub struct OweemeMessage {
     pub sender_name: String,
     pub message: String,
     pub code_context: Option<String>,
+    pub attachment: Option<OweemeAttachment>,
     pub is_mine: bool,
     pub created_at: String,
+}
+
+/// Something shared with a message: kind = code | file | flow | preview.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct OweemeAttachment {
+    pub kind: String,
+    pub name: String,
+    pub content: String,
 }
 
 /// `https://oweeme.com/api/` + `/team-chat/rooms` → one slash in between.
@@ -175,9 +186,108 @@ pub async fn oweeme_create_room(
     decode(call(&base, "POST", "/team-chat/rooms", Some(body), &token()?).await?)
 }
 
+// ── Project tasks (scope `sdlc` of the token) ──────────────────────────────
+// Boards, kanban and comments are passed through as JSON: the panel renders
+// exactly what Oweeme returns, so new fields need no Rust change.
+
+#[tauri::command]
+pub async fn oweeme_boards(base: String, project: String) -> Result<Value, String> {
+    call(
+        &base,
+        "GET",
+        &format!("/sdlc/projects/{project}/boards"),
+        None,
+        &token()?,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn oweeme_kanban(base: String, board: String) -> Result<Value, String> {
+    call(
+        &base,
+        "GET",
+        &format!("/sdlc/boards/{board}/kanban"),
+        None,
+        &token()?,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn oweeme_move_task(base: String, task: String, list: String) -> Result<Value, String> {
+    call(
+        &base,
+        "PUT",
+        &format!("/sdlc/tasks/{task}/move"),
+        Some(serde_json::json!({ "listUuid": list })),
+        &token()?,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn oweeme_create_task(
+    base: String,
+    list: String,
+    title: String,
+) -> Result<Value, String> {
+    let body = serde_json::json!({ "title": title, "priority": "medium" });
+    call(
+        &base,
+        "POST",
+        &format!("/sdlc/lists/{list}/tasks"),
+        Some(body),
+        &token()?,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn oweeme_comments(base: String, task: String) -> Result<Value, String> {
+    call(
+        &base,
+        "GET",
+        &format!("/sdlc/tasks/{task}/comments"),
+        None,
+        &token()?,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn oweeme_add_comment(base: String, task: String, body: String) -> Result<Value, String> {
+    call(
+        &base,
+        "POST",
+        &format!("/sdlc/tasks/{task}/comments"),
+        Some(serde_json::json!({ "body": body })),
+        &token()?,
+    )
+    .await
+}
+
+/// This machine's address on the local network (e.g. 192.168.1.20), so a
+/// teammate on the same network can open a shared preview. Connecting a UDP
+/// socket sends no packet; it only asks the OS which interface it would use.
+#[tauri::command]
+pub fn oweeme_lan_ip() -> Option<String> {
+    let sock = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
+    sock.connect("8.8.8.8:80").ok()?;
+    let ip = sock.local_addr().ok()?.ip();
+    (!ip.is_loopback()).then(|| ip.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lan_ip_is_never_loopback() {
+        if let Some(ip) = oweeme_lan_ip() {
+            assert!(!ip.starts_with("127."), "{ip}");
+        }
+    }
 
     #[test]
     fn joins_base_and_path_with_one_slash() {
@@ -210,16 +320,25 @@ mod tests {
     fn decodes_rooms_and_messages_as_sent_by_oweeme() {
         let rooms: Vec<OweemeRoom> = decode(serde_json::json!([{
             "uuid": "r1", "name": "bella-dev", "repositoryUrl": "https://github.com/oweeme/bella",
-            "workspaceName": "Clientes 2026", "projectName": null, "myRole": "owner", "memberCount": 1, "messageCount": 3
+            "workspaceName": "Clientes 2026", "projectName": "Tienda", "projectUuid": "p1", "projectKey": "BELLA",
+            "myRole": "owner", "memberCount": 1, "messageCount": 3
         }])).unwrap();
         assert_eq!(
             rooms[0].repository_url.as_deref(),
             Some("https://github.com/oweeme/bella")
         );
         let msgs: Vec<OweemeMessage> = decode(serde_json::json!([{
-            "uuid": "m1", "senderName": "Héctor", "message": "hola", "codeContext": null, "isMine": true, "createdAt": "2026-11-07T17:49:33Z"
+            "uuid": "m1", "senderName": "Héctor", "message": "hola", "codeContext": null, "isMine": true, "createdAt": "2026-11-07T17:49:33Z",
+            "attachment": { "kind": "flow", "name": "Checkout", "content": "{}" }
+        }, {
+            "uuid": "m2", "senderName": "Ana", "message": "sin adjunto", "codeContext": null, "attachment": null, "isMine": false, "createdAt": "2026-11-07T17:50:00Z"
         }])).unwrap();
         assert!(msgs[0].is_mine);
+        assert_eq!(
+            msgs[0].attachment.as_ref().map(|a| a.kind.as_str()),
+            Some("flow")
+        );
+        assert!(msgs[1].attachment.is_none());
     }
 
     /// Live check against a running oweeme_pod:
@@ -253,6 +372,58 @@ mod tests {
         )
         .unwrap();
         assert!(sent.is_mine);
+        if let Some(project) = &rooms[0].project_uuid {
+            let boards = call(
+                &base,
+                "GET",
+                &format!("/sdlc/projects/{project}/boards"),
+                None,
+                &tok,
+            )
+            .await
+            .unwrap();
+            let board = boards[0]["uuid"].as_str().unwrap().to_string();
+            let kanban = call(
+                &base,
+                "GET",
+                &format!("/sdlc/boards/{board}/kanban"),
+                None,
+                &tok,
+            )
+            .await
+            .unwrap();
+            assert!(kanban["lists"]
+                .as_array()
+                .map(|l| !l.is_empty())
+                .unwrap_or(false));
+            let paid = call(
+                &base,
+                "GET",
+                &format!("/sdlc/projects/{project}/payments"),
+                None,
+                &tok,
+            )
+            .await
+            .unwrap_err();
+            assert!(
+                paid.contains("not allowed"),
+                "payments must stay closed to owc_ tokens: {paid}"
+            );
+        }
+        let att = serde_json::json!({ "message": "flujo adjunto", "codeContext": "", "attachment": { "kind": "flow", "name": "Checkout", "content": "{\"nodes\":[],\"edges\":[]}" } });
+        let with_att: OweemeMessage = decode(
+            call(
+                &base,
+                "POST",
+                &format!("/team-chat/rooms/{}/messages", rooms[0].uuid),
+                Some(att),
+                &tok,
+            )
+            .await
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(with_att.attachment.map(|a| a.kind), Some("flow".into()));
         let bad = call(&base, "GET", "/quotes", None, &tok).await.unwrap_err();
         assert!(
             bad.contains("not allowed"),
