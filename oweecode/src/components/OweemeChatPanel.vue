@@ -133,6 +133,13 @@ async function send() {
   sending.value = false
 }
 
+/** Splits text into plain parts and links, so URLs in messages open in the system browser. */
+const URL_RE = /(https?:\/\/[^\s<>"')\]]+)/g
+function parts(text: string): Array<{ t: string; url?: string }> {
+  return text.split(URL_RE).filter(Boolean).map((p) => (/^https?:\/\//.test(p) ? { t: p, url: p.replace(/[.,;:!?]+$/, '') } : { t: p }))
+}
+function openExternal(url: string) { void openUrl(url).catch((e) => (chat.error.value = String(e))) }
+
 const previewOf = (a: OweemeAttachment): PreviewShare | null => { try { return JSON.parse(a.content) } catch { return null } }
 const flowSize = (a: OweemeAttachment) => { try { const f = JSON.parse(a.content); return `${f.nodes?.length ?? 0} · ${f.edges?.length ?? 0}` } catch { return '' } }
 const lines = (s: string) => s.split('\n').length
@@ -276,7 +283,7 @@ onUnmounted(() => {
           <div v-if="!chat.activeRoom.value" class="ow-empty">{{ t('owPickRoomHint') }}</div>
           <div v-for="m in chat.messages.value" :key="m.uuid" class="ow-msg" :class="{ mine: m.isMine }">
             <div class="ow-meta">{{ m.senderName }} · {{ time(m.createdAt) }}</div>
-            <div class="ow-text">{{ m.message }}</div>
+            <div class="ow-text"><template v-for="(p, i) in parts(m.message)" :key="i"><a v-if="p.url" href="#" class="ow-url" :title="p.url" @click.prevent="openExternal(p.url)">{{ p.t }}</a><template v-else>{{ p.t }}</template></template></div>
             <pre v-if="m.codeContext && !m.attachment" class="ow-code">{{ m.codeContext }}</pre>
 
             <!-- attachments -->
@@ -299,7 +306,7 @@ onUnmounted(() => {
               </template>
               <template v-else-if="m.attachment.kind === 'preview' && previewOf(m.attachment)">
                 <div class="ow-att-head">🌐 {{ t('owPreview') }} <span v-if="previewOf(m.attachment)!.device" class="ow-dim">· {{ previewOf(m.attachment)!.device }}</span></div>
-                <div class="ow-mono ow-dim ow-ellipsis">{{ previewOf(m.attachment)!.lanUrl ?? previewOf(m.attachment)!.url }}</div>
+                <a href="#" class="ow-mono ow-url ow-ellipsis" @click.prevent="openExternal(previewOf(m.attachment)!.lanUrl ?? previewOf(m.attachment)!.url)">{{ previewOf(m.attachment)!.lanUrl ?? previewOf(m.attachment)!.url }}</a>
                 <div class="ow-att-actions">
                   <button class="ow-link" @click="share.openPreview(m.attachment)">{{ t('owOpenPreview') }}</button>
                   <button class="ow-link" @click="copy(previewOf(m.attachment)!.lanUrl ?? previewOf(m.attachment)!.url)">{{ t('owCopy') }}</button>
@@ -360,7 +367,7 @@ onUnmounted(() => {
             <label class="ow-label">{{ t('owComments') }}</label>
             <div v-for="c in tasks.comments.value" :key="c.uuid" class="ow-msg" :class="{ mine: c.isMe }">
               <div class="ow-meta">{{ c.authorName }} · {{ time(c.createdAt) }}</div>
-              <div class="ow-text">{{ c.body }}</div>
+              <div class="ow-text"><template v-for="(p, i) in parts(c.body)" :key="i"><a v-if="p.url" href="#" class="ow-url" :title="p.url" @click.prevent="openExternal(p.url)">{{ p.t }}</a><template v-else>{{ p.t }}</template></template></div>
             </div>
             <textarea v-model="commentText" class="ow-input ow-textarea" rows="2" :placeholder="t('owCommentPh')" @keydown.enter.exact.prevent="commentTask" />
             <button class="ow-btn ow-btn-main" :disabled="!commentText.trim()" @click="commentTask">{{ t('owComment') }}</button>
@@ -423,6 +430,7 @@ onUnmounted(() => {
 .ow-btn-main { background: var(--accent); color: var(--accent-fg); border-color: transparent; font-weight: 600; }
 .ow-link { background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; font: inherit; align-self: flex-start; }
 .ow-link:hover { text-decoration: underline; }
+.ow-url { color: var(--accent); text-decoration: underline; word-break: break-all; }
 .ow-hint { margin: 6px 0 0; color: var(--fg-muted); font-size: 11px; line-height: 1.5; }
 .ow-hint a { color: var(--accent); }
 .ow-messages, .ow-board, .ow-task { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }

@@ -162,8 +162,9 @@ pub async fn oweeme_send(
     room: String,
     message: String,
     code_context: String,
+    attachment: Option<OweemeAttachment>,
 ) -> Result<OweemeMessage, String> {
-    let body = serde_json::json!({ "message": message, "codeContext": code_context });
+    let body = serde_json::json!({ "message": message, "codeContext": code_context, "attachment": attachment });
     decode(
         call(
             &base,
@@ -430,5 +431,35 @@ mod tests {
             "owc_ tokens must be rejected outside team chat: {bad}"
         );
         println!("OK: {} salas, mensaje {}", rooms.len(), sent.uuid);
+    }
+}
+
+#[cfg(test)]
+mod command_path_tests {
+    /// Calls the real Tauri command with the token stored in the keychain:
+    ///   OWEEME_TEST_ROOM=<uuid> cargo test command_path -- --nocapture
+    #[tokio::test]
+    async fn send_command_keeps_attachment() {
+        let Ok(room) = std::env::var("OWEEME_TEST_ROOM") else {
+            println!("SKIP");
+            return;
+        };
+        let att = super::OweemeAttachment {
+            kind: "code".into(),
+            name: "src/x.rs".into(),
+            content: "fn x() {}".into(),
+        };
+        match super::oweeme_send(
+            "http://localhost:8090/api".into(),
+            room,
+            "prueba comando".into(),
+            "".into(),
+            Some(att),
+        )
+        .await
+        {
+            Ok(m) => println!("RESULT attachment = {:?}", m.attachment.map(|a| a.kind)),
+            Err(e) => println!("RESULT error = {e}"),
+        }
     }
 }
