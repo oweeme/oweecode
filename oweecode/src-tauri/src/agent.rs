@@ -5,9 +5,9 @@
 // delegates to `filesystem::*`, so the agent gets the exact same behavior the
 // file explorer already has, just scoped to the project.
 
-use std::path::{Path, PathBuf};
 use serde::Serialize;
 use serde_json::{json, Value};
+use std::path::{Path, PathBuf};
 use tauri::Emitter;
 
 use crate::ai::AiMessage;
@@ -40,7 +40,10 @@ pub(crate) fn confine(root: &str, target: &str) -> Result<PathBuf, String> {
         let name = existing.file_name().map(|n| n.to_os_string());
         let parent = existing.parent().map(|p| p.to_path_buf());
         match (name, parent) {
-            (Some(n), Some(p)) => { remainder.push(n); existing = p; }
+            (Some(n), Some(p)) => {
+                remainder.push(n);
+                existing = p;
+            }
             _ => break,
         }
     }
@@ -67,11 +70,18 @@ pub(crate) fn confine(root: &str, target: &str) -> Result<PathBuf, String> {
 pub fn agent_read_file(root: String, path: String) -> Result<String, String> {
     let p = confine(&root, &path)?;
     filesystem::open_file(p.to_string_lossy().to_string()).map_err(|e| {
-        let parent = p.parent().map(|d| d.to_path_buf()).unwrap_or_else(|| p.clone());
+        let parent = p
+            .parent()
+            .map(|d| d.to_path_buf())
+            .unwrap_or_else(|| p.clone());
         match filesystem::list_dir(parent.to_string_lossy().to_string(), Some(false)) {
             Ok(entries) if !entries.is_empty() => {
                 let names: Vec<&str> = entries.iter().map(|f| f.name.as_str()).collect();
-                format!("{} — Archivos reales en esa carpeta: {}", e, names.join(", "))
+                format!(
+                    "{} — Archivos reales en esa carpeta: {}",
+                    e,
+                    names.join(", ")
+                )
             }
             _ => e,
         }
@@ -85,7 +95,11 @@ pub fn agent_write_file(root: String, path: String, content: String) -> Result<(
 }
 
 #[tauri::command]
-pub fn agent_list_dir(root: String, path: String, show_hidden: Option<bool>) -> Result<Vec<FileEntry>, String> {
+pub fn agent_list_dir(
+    root: String,
+    path: String,
+    show_hidden: Option<bool>,
+) -> Result<Vec<FileEntry>, String> {
     let p = confine(&root, &path)?;
     filesystem::list_dir(p.to_string_lossy().to_string(), show_hidden)
 }
@@ -125,7 +139,11 @@ pub struct ShellResult {
 const SHELL_COMMAND_TIMEOUT_SECS: u64 = 120;
 
 #[tauri::command]
-pub async fn agent_run_command(root: String, cwd: Option<String>, command: String) -> Result<ShellResult, String> {
+pub async fn agent_run_command(
+    root: String,
+    cwd: Option<String>,
+    command: String,
+) -> Result<ShellResult, String> {
     let cwd_path = confine(&root, cwd.as_deref().unwrap_or("."))?;
 
     #[cfg(target_os = "windows")]
@@ -152,7 +170,10 @@ pub async fn agent_run_command(root: String, cwd: Option<String>, command: Strin
         Ok(Err(e)) => Err(e.to_string()),
         Err(_) => Ok(ShellResult {
             stdout: String::new(),
-            stderr: format!("Comando cancelado: superó el límite de {}s", SHELL_COMMAND_TIMEOUT_SECS),
+            stderr: format!(
+                "Comando cancelado: superó el límite de {}s",
+                SHELL_COMMAND_TIMEOUT_SECS
+            ),
             exit_code: -1,
             timed_out: true,
         }),
@@ -169,7 +190,9 @@ pub struct OllamaStatus {
 #[tauri::command]
 pub async fn ollama_check_installed() -> OllamaStatus {
     #[cfg(any(target_os = "macos", target_os = "linux"))]
-    let ollama_bin = crate::util::find_binary("ollama").await.unwrap_or_else(|| "ollama".to_string());
+    let ollama_bin = crate::util::find_binary("ollama")
+        .await
+        .unwrap_or_else(|| "ollama".to_string());
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     let ollama_bin = "ollama".to_string();
     let mut cmd = tokio::process::Command::new(ollama_bin);
@@ -178,19 +201,32 @@ pub async fn ollama_check_installed() -> OllamaStatus {
     if let Some(p) = crate::util::resolve_login_shell_path().await {
         cmd.env("PATH", p.trim());
     }
-    let version = cmd.output().await.ok()
+    let version = cmd
+        .output()
+        .await
+        .ok()
         .filter(|o| o.status.success())
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
     let installed = version.is_some();
 
-    let running = match reqwest::Client::builder().timeout(std::time::Duration::from_secs(2)).build() {
-        Ok(client) => client.get("http://localhost:11434/api/tags").send().await
+    let running = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(2))
+        .build()
+    {
+        Ok(client) => client
+            .get("http://localhost:11434/api/tags")
+            .send()
+            .await
             .map(|r| r.status().is_success())
             .unwrap_or(false),
         Err(_) => false,
     };
 
-    OllamaStatus { installed, running, version }
+    OllamaStatus {
+        installed,
+        running,
+        version,
+    }
 }
 
 /// Structured tool-call the agent loop can act on, normalized from Ollama's
@@ -236,11 +272,18 @@ pub async fn agent_ollama_chat(
         "stream": false,
     });
 
-    let res = client.post("http://localhost:11434/api/chat")
+    let res = client
+        .post("http://localhost:11434/api/chat")
         .header("content-type", "application/json")
         .json(&body)
-        .send().await
-        .map_err(|e| format!("Ollama no está corriendo. Iniciá el servicio e intentá de nuevo.\n{}", e))?;
+        .send()
+        .await
+        .map_err(|e| {
+            format!(
+                "Ollama no está corriendo. Iniciá el servicio e intentá de nuevo.\n{}",
+                e
+            )
+        })?;
 
     if !res.status().is_success() {
         let status = res.status();
@@ -255,20 +298,33 @@ pub async fn agent_ollama_chat(
     }
 
     let data: Value = res.json().await.map_err(|e| e.to_string())?;
-    let content = data["message"]["content"].as_str().unwrap_or("").to_string();
+    let content = data["message"]["content"]
+        .as_str()
+        .unwrap_or("")
+        .to_string();
 
     let tool_calls = data["message"]["tool_calls"]
         .as_array()
         .map(|arr| {
-            arr.iter().enumerate().filter_map(|(i, tc)| {
-                let name = tc["function"]["name"].as_str()?.to_string();
-                let arguments = tc["function"]["arguments"].clone();
-                Some(AgentToolCall { id: format!("call_{}", i), name, arguments })
-            }).collect()
+            arr.iter()
+                .enumerate()
+                .filter_map(|(i, tc)| {
+                    let name = tc["function"]["name"].as_str()?.to_string();
+                    let arguments = tc["function"]["arguments"].clone();
+                    Some(AgentToolCall {
+                        id: format!("call_{}", i),
+                        name,
+                        arguments,
+                    })
+                })
+                .collect()
         })
         .unwrap_or_default();
 
-    Ok(AgentChatResponse { content, tool_calls })
+    Ok(AgentChatResponse {
+        content,
+        tool_calls,
+    })
 }
 
 #[derive(Serialize, Clone)]
@@ -295,9 +351,11 @@ pub async fn ollama_pull_model(model: String, app: tauri::AppHandle) -> Result<(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let res = client.post("http://localhost:11434/api/pull")
+    let res = client
+        .post("http://localhost:11434/api/pull")
         .json(&json!({"name": model, "stream": true}))
-        .send().await
+        .send()
+        .await
         .map_err(|e| format!("No se pudo conectar con Ollama: {}", e))?;
 
     if !res.status().is_success() {
@@ -316,8 +374,13 @@ pub async fn ollama_pull_model(model: String, app: tauri::AppHandle) -> Result<(
             let line_bytes: Vec<u8> = buf.drain(..=pos).collect();
             let line = String::from_utf8_lossy(&line_bytes);
             let line = line.trim();
-            if line.is_empty() { continue; }
-            let v: Value = match serde_json::from_str(line) { Ok(v) => v, Err(_) => continue };
+            if line.is_empty() {
+                continue;
+            }
+            let v: Value = match serde_json::from_str(line) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
             if let Some(err) = v["error"].as_str() {
                 return Err(err.to_string());
             }
@@ -326,11 +389,27 @@ pub async fn ollama_pull_model(model: String, app: tauri::AppHandle) -> Result<(
             let total = v["total"].as_u64().unwrap_or(0);
             let is_final = status.starts_with("success") || (total > 0 && completed >= total);
             if is_final || last_emit.elapsed().as_millis() >= 150 {
-                emit_pull_progress(&app, PullProgress { model: model.clone(), status, completed, total });
+                emit_pull_progress(
+                    &app,
+                    PullProgress {
+                        model: model.clone(),
+                        status,
+                        completed,
+                        total,
+                    },
+                );
                 last_emit = std::time::Instant::now();
             }
         }
     }
-    emit_pull_progress(&app, PullProgress { model: model.clone(), status: "success".into(), completed: 0, total: 0 });
+    emit_pull_progress(
+        &app,
+        PullProgress {
+            model: model.clone(),
+            status: "success".into(),
+            completed: 0,
+            total: 0,
+        },
+    );
     Ok(())
 }

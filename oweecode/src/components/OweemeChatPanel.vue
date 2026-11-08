@@ -311,9 +311,10 @@ onUnmounted(() => {
                   <button class="ow-link" @click="openShared(m.attachment)">{{ t('owOpenInProject') }}</button>
                 </div>
               </template>
+              <div v-else-if="m.attachment.kind === 'image' && (m.attachment.expired || !m.attachment.content)" class="ow-dim ow-small">🖼 {{ t('owImageExpired', { n: m.attachment.retentionDays ?? 30 }) }}</div>
               <template v-else-if="m.attachment.kind === 'image'">
                 <img :src="m.attachment.content" :alt="m.attachment.name" class="ow-img" @click="lightbox = m.attachment.content" />
-                <div class="ow-dim ow-small">{{ m.attachment.name }}</div>
+                <div class="ow-dim ow-small">{{ m.attachment.name }} · {{ t('owImageRetention', { n: m.attachment.retentionDays ?? 30 }) }}</div>
               </template>
               <template v-else-if="m.attachment.kind === 'flow'">
                 <div class="ow-att-head">🔀 {{ t('owFlow') }}: {{ m.attachment.name }} <span class="ow-dim">({{ flowSize(m.attachment) }})</span></div>

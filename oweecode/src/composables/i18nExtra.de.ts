@@ -604,4 +604,6 @@ export const extraDe: Partial<Record<ExtraKey, string>> = {
   owChangeToken: "Token ändern",
   owRestartNeeded: "Der Anhang ist nicht angekommen: der App-Kern ist eine ältere Version. Schließe OweeCode (Strg+C im Terminal) und starte «npm run tauri dev» erneut.",
   owProjectMap: "Projektkarte",
+  owImageExpired: "Bild abgelaufen: Chat-Bilder werden {n} Tage aufbewahrt.",
+  owImageRetention: "wird nach {n} Tagen gelöscht",
 }

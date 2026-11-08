@@ -606,4 +606,6 @@ export const extraZh: Partial<Record<ExtraKey, string>> = {
   owChangeToken: "更换令牌",
   owRestartNeeded: "附件没有送达：应用核心是旧版本。关闭 OweeCode（在终端按 Ctrl+C），然后重新运行 «npm run tauri dev»。",
   owProjectMap: "项目地图",
+  owImageExpired: "图片已过期：聊天图片保留 {n} 天。",
+  owImageRetention: "{n} 天后删除",
 }

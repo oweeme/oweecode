@@ -37,7 +37,10 @@ mod tests {
         let k = "test:oweecode-roundtrip".to_string();
         match super::secret_set(k.clone(), "abc123".into()) {
             Ok(()) => {
-                assert_eq!(super::secret_get(k.clone()).unwrap().as_deref(), Some("abc123"));
+                assert_eq!(
+                    super::secret_get(k.clone()).unwrap().as_deref(),
+                    Some("abc123")
+                );
                 super::secret_delete(k.clone()).unwrap();
                 assert_eq!(super::secret_get(k).unwrap(), None);
             }

@@ -29,10 +29,15 @@ pub async fn call_ai(
 
     match provider.as_str() {
         "claude" => {
-            let msgs: Vec<Value> = messages.iter().map(|m| json!({
-                "role": m.role,
-                "content": m.content
-            })).collect();
+            let msgs: Vec<Value> = messages
+                .iter()
+                .map(|m| {
+                    json!({
+                        "role": m.role,
+                        "content": m.content
+                    })
+                })
+                .collect();
 
             let body = json!({
                 "model": model,
@@ -52,12 +57,21 @@ pub async fn call_ai(
                 .map_err(|e| e.to_string())?;
 
             if !res.status().is_success() {
-                let err: Value = res.json().await.unwrap_or(json!({"error":{"message":"Unknown error"}}));
-                return Err(err["error"]["message"].as_str().unwrap_or("API error").to_string());
+                let err: Value = res
+                    .json()
+                    .await
+                    .unwrap_or(json!({"error":{"message":"Unknown error"}}));
+                return Err(err["error"]["message"]
+                    .as_str()
+                    .unwrap_or("API error")
+                    .to_string());
             }
 
             let data: Value = res.json().await.map_err(|e| e.to_string())?;
-            Ok(data["content"][0]["text"].as_str().unwrap_or("").to_string())
+            Ok(data["content"][0]["text"]
+                .as_str()
+                .unwrap_or("")
+                .to_string())
         }
         "openai" => {
             let mut msgs: Vec<Value> = vec![json!({"role": "system", "content": system})];
@@ -81,12 +95,21 @@ pub async fn call_ai(
                 .map_err(|e| e.to_string())?;
 
             if !res.status().is_success() {
-                let err: Value = res.json().await.unwrap_or(json!({"error":{"message":"Unknown error"}}));
-                return Err(err["error"]["message"].as_str().unwrap_or("API error").to_string());
+                let err: Value = res
+                    .json()
+                    .await
+                    .unwrap_or(json!({"error":{"message":"Unknown error"}}));
+                return Err(err["error"]["message"]
+                    .as_str()
+                    .unwrap_or("API error")
+                    .to_string());
             }
 
             let data: Value = res.json().await.map_err(|e| e.to_string())?;
-            Ok(data["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string())
+            Ok(data["choices"][0]["message"]["content"]
+                .as_str()
+                .unwrap_or("")
+                .to_string())
         }
         "gemini" => {
             // system_instruction not supported in all versions — prepend as user/model pair
@@ -96,7 +119,11 @@ pub async fn call_ai(
                 msgs.push(json!({ "role": "model", "parts": [{ "text": "Understood. I will follow those instructions." }] }));
             }
             for m in &messages {
-                let role = if m.role == "assistant" { "model" } else { "user" };
+                let role = if m.role == "assistant" {
+                    "model"
+                } else {
+                    "user"
+                };
                 msgs.push(json!({ "role": role, "parts": [{ "text": m.content }] }));
             }
             let body = json!({
@@ -107,16 +134,28 @@ pub async fn call_ai(
                 "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
                 model, api_key
             );
-            let res = client.post(&url)
+            let res = client
+                .post(&url)
                 .header("content-type", "application/json")
                 .json(&body)
-                .send().await.map_err(|e| e.to_string())?;
+                .send()
+                .await
+                .map_err(|e| e.to_string())?;
             if !res.status().is_success() {
-                let err: Value = res.json().await.unwrap_or(json!({"error":{"message":"Unknown"}}));
-                return Err(err["error"]["message"].as_str().unwrap_or("Gemini API error").to_string());
+                let err: Value = res
+                    .json()
+                    .await
+                    .unwrap_or(json!({"error":{"message":"Unknown"}}));
+                return Err(err["error"]["message"]
+                    .as_str()
+                    .unwrap_or("Gemini API error")
+                    .to_string());
             }
             let data: Value = res.json().await.map_err(|e| e.to_string())?;
-            Ok(data["candidates"][0]["content"]["parts"][0]["text"].as_str().unwrap_or("").to_string())
+            Ok(data["candidates"][0]["content"]["parts"][0]["text"]
+                .as_str()
+                .unwrap_or("")
+                .to_string())
         }
         "ollama" => {
             // Ollama runs locally at http://localhost:11434
@@ -125,17 +164,22 @@ pub async fn call_ai(
                 msgs.push(json!({"role": m.role, "content": m.content}));
             }
             let body = json!({ "model": model, "messages": msgs, "stream": false });
-            let res = client.post("http://localhost:11434/api/chat")
+            let res = client
+                .post("http://localhost:11434/api/chat")
                 .header("content-type", "application/json")
                 .json(&body)
-                .send().await
+                .send()
+                .await
                 .map_err(|e| format!("Ollama not running? Start with: ollama serve\n{}", e))?;
             if !res.status().is_success() {
                 let txt = res.text().await.unwrap_or_default();
                 return Err(format!("Ollama error: {}", txt));
             }
             let data: Value = res.json().await.map_err(|e| e.to_string())?;
-            Ok(data["message"]["content"].as_str().unwrap_or("").to_string())
+            Ok(data["message"]["content"]
+                .as_str()
+                .unwrap_or("")
+                .to_string())
         }
         "deepseek" => {
             // DeepSeek uses OpenAI-compatible API
@@ -153,14 +197,24 @@ pub async fn call_ai(
                 .header("Authorization", format!("Bearer {}", api_key))
                 .header("content-type", "application/json")
                 .json(&body)
-                .send().await
+                .send()
+                .await
                 .map_err(|e| e.to_string())?;
             if !res.status().is_success() {
-                let err: Value = res.json().await.unwrap_or(json!({"error":{"message":"Unknown error"}}));
-                return Err(err["error"]["message"].as_str().unwrap_or("DeepSeek error").to_string());
+                let err: Value = res
+                    .json()
+                    .await
+                    .unwrap_or(json!({"error":{"message":"Unknown error"}}));
+                return Err(err["error"]["message"]
+                    .as_str()
+                    .unwrap_or("DeepSeek error")
+                    .to_string());
             }
             let data: Value = res.json().await.map_err(|e| e.to_string())?;
-            Ok(data["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string())
+            Ok(data["choices"][0]["message"]["content"]
+                .as_str()
+                .unwrap_or("")
+                .to_string())
         }
         "groq" => {
             // Groq — OpenAI-compatible API, free tier with generous rate limits.
@@ -178,14 +232,24 @@ pub async fn call_ai(
                 .header("Authorization", format!("Bearer {}", api_key))
                 .header("content-type", "application/json")
                 .json(&body)
-                .send().await
+                .send()
+                .await
                 .map_err(|e| e.to_string())?;
             if !res.status().is_success() {
-                let err: Value = res.json().await.unwrap_or(json!({"error":{"message":"Unknown error"}}));
-                return Err(err["error"]["message"].as_str().unwrap_or("Groq error").to_string());
+                let err: Value = res
+                    .json()
+                    .await
+                    .unwrap_or(json!({"error":{"message":"Unknown error"}}));
+                return Err(err["error"]["message"]
+                    .as_str()
+                    .unwrap_or("Groq error")
+                    .to_string());
             }
             let data: Value = res.json().await.map_err(|e| e.to_string())?;
-            Ok(data["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string())
+            Ok(data["choices"][0]["message"]["content"]
+                .as_str()
+                .unwrap_or("")
+                .to_string())
         }
         "openrouter" => {
             // OpenRouter — OpenAI-compatible API aggregating many providers, including
@@ -204,14 +268,24 @@ pub async fn call_ai(
                 .header("Authorization", format!("Bearer {}", api_key))
                 .header("content-type", "application/json")
                 .json(&body)
-                .send().await
+                .send()
+                .await
                 .map_err(|e| e.to_string())?;
             if !res.status().is_success() {
-                let err: Value = res.json().await.unwrap_or(json!({"error":{"message":"Unknown error"}}));
-                return Err(err["error"]["message"].as_str().unwrap_or("OpenRouter error").to_string());
+                let err: Value = res
+                    .json()
+                    .await
+                    .unwrap_or(json!({"error":{"message":"Unknown error"}}));
+                return Err(err["error"]["message"]
+                    .as_str()
+                    .unwrap_or("OpenRouter error")
+                    .to_string());
             }
             let data: Value = res.json().await.map_err(|e| e.to_string())?;
-            Ok(data["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string())
+            Ok(data["choices"][0]["message"]["content"]
+                .as_str()
+                .unwrap_or("")
+                .to_string())
         }
         "omniroute" => {
             // OmniRoute — local OpenAI-compatible router/proxy (npm install -g omniroute &&
@@ -234,13 +308,22 @@ pub async fn call_ai(
                 .send().await
                 .map_err(|e| format!("No se pudo conectar con OmniRoute en localhost:20128 — ¿está corriendo? (`omniroute` en una terminal). {}", e))?;
             if !res.status().is_success() {
-                let err: Value = res.json().await.unwrap_or(json!({"error":{"message":"Unknown error"}}));
-                return Err(err["error"]["message"].as_str().unwrap_or("OmniRoute error").to_string());
+                let err: Value = res
+                    .json()
+                    .await
+                    .unwrap_or(json!({"error":{"message":"Unknown error"}}));
+                return Err(err["error"]["message"]
+                    .as_str()
+                    .unwrap_or("OmniRoute error")
+                    .to_string());
             }
             let data: Value = res.json().await.map_err(|e| e.to_string())?;
-            Ok(data["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string())
+            Ok(data["choices"][0]["message"]["content"]
+                .as_str()
+                .unwrap_or("")
+                .to_string())
         }
-        _ => Err(format!("Unknown provider: {}", provider))
+        _ => Err(format!("Unknown provider: {}", provider)),
     }
 }
 

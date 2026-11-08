@@ -606,4 +606,6 @@ export const extraRu: Partial<Record<ExtraKey, string>> = {
   owChangeToken: "Сменить токен",
   owRestartNeeded: "Вложение не дошло: ядро приложения старой версии. Закрой OweeCode (Ctrl+C в терминале) и снова запусти «npm run tauri dev».",
   owProjectMap: "Карта проекта",
+  owImageExpired: "Изображение удалено: картинки чата хранятся {n} дней.",
+  owImageRetention: "удалится через {n} дней",
 }

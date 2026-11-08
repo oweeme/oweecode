@@ -606,4 +606,6 @@ export const extraKo: Partial<Record<ExtraKey, string>> = {
   owChangeToken: "토큰 변경",
   owRestartNeeded: "첨부 파일이 전송되지 않았습니다: 앱 코어가 이전 버전입니다. OweeCode를 닫고(터미널에서 Ctrl+C) «npm run tauri dev»를 다시 실행하세요.",
   owProjectMap: "프로젝트 맵",
+  owImageExpired: "이미지 만료: 채팅 이미지는 {n}일 동안 보관됩니다.",
+  owImageRetention: "{n}일 후 삭제",
 }

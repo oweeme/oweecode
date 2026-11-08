@@ -22,6 +22,9 @@ export interface OweemeAttachment {
   kind: 'code' | 'file' | 'flow' | 'preview' | 'image'
   name: string
   content: string
+  /** Images only: Oweeme deletes chat images after `retentionDays` (30), then `expired` is true. */
+  expired?: boolean
+  retentionDays?: number
 }
 
 export interface OweemeMessage {

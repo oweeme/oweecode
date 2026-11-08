@@ -606,4 +606,6 @@ export const extraJa: Partial<Record<ExtraKey, string>> = {
   owChangeToken: "トークンを変更",
   owRestartNeeded: "添付が届きませんでした: アプリのコアが古いバージョンです。OweeCode を閉じて（ターミナルで Ctrl+C）、«npm run tauri dev» をもう一度実行してください。",
   owProjectMap: "プロジェクトマップ",
+  owImageExpired: "画像の期限切れ：チャットの画像は {n} 日間保存されます。",
+  owImageRetention: "{n} 日後に削除",
 }

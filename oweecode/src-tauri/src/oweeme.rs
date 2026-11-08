@@ -39,12 +39,21 @@ pub struct OweemeMessage {
     pub created_at: String,
 }
 
-/// Something shared with a message: kind = code | file | flow | preview.
+/// Something shared with a message: kind = code | file | flow | preview | image.
+/// Images are deleted by Oweeme after `retentionDays` (30): then `expired` is true.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OweemeAttachment {
     pub kind: String,
     pub name: String,
     pub content: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expired: Option<bool>,
+    #[serde(
+        default,
+        rename = "retentionDays",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub retention_days: Option<u32>,
 }
 
 /// `https://oweeme.com/api/` + `/team-chat/rooms` → one slash in between.
@@ -448,6 +457,8 @@ mod command_path_tests {
             kind: "code".into(),
             name: "src/x.rs".into(),
             content: "fn x() {}".into(),
+            expired: None,
+            retention_days: None,
         };
         match super::oweeme_send(
             "http://localhost:8090/api".into(),
@@ -461,5 +472,26 @@ mod command_path_tests {
             Ok(m) => println!("RESULT attachment = {:?}", m.attachment.map(|a| a.kind)),
             Err(e) => println!("RESULT error = {e}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod attachment_tests {
+    #[test]
+    fn keeps_image_expiry_from_the_api() {
+        let a: super::OweemeAttachment = serde_json::from_str(
+            r#"{"kind":"image","name":"captura","content":"","expired":true,"retentionDays":30}"#,
+        )
+        .unwrap();
+        assert_eq!(a.expired, Some(true));
+        assert_eq!(a.retention_days, Some(30));
+        // what OweeCode sends back stays as before (no extra fields)
+        let sent = serde_json::to_value(super::OweemeAttachment {
+            expired: None,
+            retention_days: None,
+            ..a
+        })
+        .unwrap();
+        assert!(sent.get("expired").is_none());
     }
 }

@@ -2,9 +2,9 @@
 // reading/writing, creating, renaming, deleting (to trash or permanently),
 // plus the project-wide text search used by the "search in files" panel.
 
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use serde::{Deserialize, Serialize};
 
 use crate::util::{base64_encode, format_epoch_secs};
 
@@ -33,12 +33,19 @@ pub fn list_dir(path: String, show_hidden: Option<bool>) -> Result<Vec<FileEntry
             let meta = e.metadata().ok();
             let is_dir = meta.as_ref().map(|m| m.is_dir()).unwrap_or(false);
             let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
-            let modified = meta.as_ref()
+            let modified = meta
+                .as_ref()
                 .and_then(|m| m.modified().ok())
                 .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
                 .map(|d| format_epoch_secs(d.as_secs()))
                 .unwrap_or_default();
-            Some(FileEntry { name, path, is_dir, size, modified })
+            Some(FileEntry {
+                name,
+                path,
+                is_dir,
+                size,
+                modified,
+            })
         })
         .collect();
     entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
@@ -95,11 +102,12 @@ pub fn move_to_trash(path: String) -> Result<(), String> {
     // Build trash dirs: ~/.local/share/Trash/{files,info}
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
     let trash_files = format!("{}/.local/share/Trash/files", home);
-    let trash_info  = format!("{}/.local/share/Trash/info",  home);
+    let trash_info = format!("{}/.local/share/Trash/info", home);
     fs::create_dir_all(&trash_files).map_err(|e| e.to_string())?;
     fs::create_dir_all(&trash_info).map_err(|e| e.to_string())?;
 
-    let name = src.file_name()
+    let name = src
+        .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "unknown".to_string());
 
@@ -107,10 +115,12 @@ pub fn move_to_trash(path: String) -> Result<(), String> {
     let mut dest_name = name.clone();
     let mut counter = 1u32;
     while Path::new(&format!("{}/{}", trash_files, dest_name)).exists() {
-        let stem = Path::new(&name).file_stem()
+        let stem = Path::new(&name)
+            .file_stem()
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| name.clone());
-        let ext = Path::new(&name).extension()
+        let ext = Path::new(&name)
+            .extension()
             .map(|e| format!(".{}", e.to_string_lossy()))
             .unwrap_or_default();
         dest_name = format!("{}_{}{}", stem, counter, ext);
@@ -121,7 +131,8 @@ pub fn move_to_trash(path: String) -> Result<(), String> {
     let info = format!("{}/{}.trashinfo", trash_info, dest_name);
 
     // Write .trashinfo (freedesktop spec)
-    let abs_path = src.canonicalize()
+    let abs_path = src
+        .canonicalize()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or(path.clone());
     let now = std::time::SystemTime::now()
@@ -161,22 +172,39 @@ fn format_trash_date(secs: u64) -> String {
     let mut year = 1970u64;
     let mut remaining_days = days;
     loop {
-        let days_in_year = if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) { 366 } else { 365 };
-        if remaining_days < days_in_year { break; }
+        let days_in_year = if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
+            366
+        } else {
+            365
+        };
+        if remaining_days < days_in_year {
+            break;
+        }
         remaining_days -= days_in_year;
         year += 1;
     }
-    let months = [31u64,28,31,30,31,30,31,31,30,31,30,31];
+    let months = [31u64, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     let mut month = 0usize;
     let mut day = remaining_days;
     for (i, &m) in months.iter().enumerate() {
-        if day < m { month = i; break; }
+        if day < m {
+            month = i;
+            break;
+        }
         day -= m;
     }
     let h = time_s / 3600;
     let m = (time_s % 3600) / 60;
     let s2 = time_s % 60;
-    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", year, month+1, day+1, h, m, s2)
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
+        year,
+        month + 1,
+        day + 1,
+        h,
+        m,
+        s2
+    )
 }
 
 fn copy_dir_recursive(src: &str, dst: &str) -> Result<(), String> {
@@ -241,32 +269,72 @@ pub fn search_in_files(
     max_results: usize,
 ) -> Result<Vec<SearchHit>, String> {
     let mut hits = Vec::new();
-    let skip_dirs = ["node_modules", ".git", "target", "dist", ".cache", "__pycache__"];
-    let text_exts = ["js","ts","tsx","jsx","vue","php","go","py","rs","html","htm","css","scss",
-                     "sass","json","yaml","yml","toml","xml","md","txt","sql","sh","bash","env",
-                     "c","cpp","h","hpp","java","rb","swift","kt","cs"];
+    let skip_dirs = [
+        "node_modules",
+        ".git",
+        "target",
+        "dist",
+        ".cache",
+        "__pycache__",
+    ];
+    let text_exts = [
+        "js", "ts", "tsx", "jsx", "vue", "php", "go", "py", "rs", "html", "htm", "css", "scss",
+        "sass", "json", "yaml", "yml", "toml", "xml", "md", "txt", "sql", "sh", "bash", "env", "c",
+        "cpp", "h", "hpp", "java", "rb", "swift", "kt", "cs",
+    ];
 
     fn walk(
-        dir: &str, query: &str, case_sensitive: bool, skip_dirs: &[&str],
-        text_exts: &[&str], hits: &mut Vec<SearchHit>, max: usize,
+        dir: &str,
+        query: &str,
+        case_sensitive: bool,
+        skip_dirs: &[&str],
+        text_exts: &[&str],
+        hits: &mut Vec<SearchHit>,
+        max: usize,
     ) {
-        if hits.len() >= max { return; }
-        let entries = match fs::read_dir(dir) { Ok(e) => e, Err(_) => return };
+        if hits.len() >= max {
+            return;
+        }
+        let entries = match fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
         for entry in entries.flatten() {
-            if hits.len() >= max { return; }
+            if hits.len() >= max {
+                return;
+            }
             let name = entry.file_name().to_string_lossy().to_string();
             let path = entry.path();
             let path_str = path.to_string_lossy().to_string();
             if path.is_dir() {
-                if name.starts_with('.') { continue; } // skip .git, .node_modules, etc.
-                if skip_dirs.contains(&name.as_str()) { continue; }
-                walk(&path_str, query, case_sensitive, skip_dirs, text_exts, hits, max);
+                if name.starts_with('.') {
+                    continue;
+                } // skip .git, .node_modules, etc.
+                if skip_dirs.contains(&name.as_str()) {
+                    continue;
+                }
+                walk(
+                    &path_str,
+                    query,
+                    case_sensitive,
+                    skip_dirs,
+                    text_exts,
+                    hits,
+                    max,
+                );
             } else {
-                let ext = path.extension().map(|e| e.to_str().unwrap_or("")).unwrap_or("");
-                if !text_exts.contains(&ext) { continue; }
+                let ext = path
+                    .extension()
+                    .map(|e| e.to_str().unwrap_or(""))
+                    .unwrap_or("");
+                if !text_exts.contains(&ext) {
+                    continue;
+                }
                 if let Ok(content) = fs::read_to_string(&path_str) {
                     for (i, line) in content.lines().enumerate() {
-                        if hits.len() >= max { return; }
+                        if hits.len() >= max {
+                            return;
+                        }
                         let matched = if case_sensitive {
                             line.contains(query)
                         } else {
@@ -287,7 +355,15 @@ pub fn search_in_files(
 
     // Ignore use_regex for now (simple contains search)
     let _ = use_regex;
-    walk(&root_path, &query, case_sensitive, &skip_dirs, &text_exts, &mut hits, max_results);
+    walk(
+        &root_path,
+        &query,
+        case_sensitive,
+        &skip_dirs,
+        &text_exts,
+        &mut hits,
+        max_results,
+    );
     Ok(hits)
 }
 
@@ -309,5 +385,8 @@ pub fn get_home_dir() -> String {
 
 #[tauri::command]
 pub fn path_join(base: String, segment: String) -> String {
-    Path::new(&base).join(&segment).to_string_lossy().to_string()
+    Path::new(&base)
+        .join(&segment)
+        .to_string_lossy()
+        .to_string()
 }

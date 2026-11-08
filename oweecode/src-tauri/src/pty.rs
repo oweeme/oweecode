@@ -2,11 +2,11 @@
 // frontend as raw bytes over a Tauri event. Used both for a plain shell and
 // for launching a specific CLI tool (Claude Code, an AI CLI, etc.) directly.
 
+use once_cell::sync::Lazy;
+use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use once_cell::sync::Lazy;
-use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use tauri::Emitter;
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -35,7 +35,12 @@ pub async fn pty_create(
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     let pty_system = native_pty_system();
-    let size = PtySize { rows, cols, pixel_width: 0, pixel_height: 0 };
+    let size = PtySize {
+        rows,
+        cols,
+        pixel_width: 0,
+        pixel_height: 0,
+    };
     let pair = pty_system.openpty(size).map_err(|e| e.to_string())?;
 
     let cmd = match command.as_deref() {
@@ -67,7 +72,11 @@ pub async fn pty_create(
             #[cfg(target_os = "windows")]
             let (shell, args): (&str, &[&str]) = {
                 // Prefer PowerShell if available, fall back to cmd.exe
-                if std::path::Path::new("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe").exists() {
+                if std::path::Path::new(
+                    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                )
+                .exists()
+                {
                     ("powershell.exe", &["-NoLogo"])
                 } else {
                     ("cmd.exe", &[])
@@ -79,7 +88,9 @@ pub async fn pty_create(
             let (shell, args): (&str, &[&str]) = ("/bin/bash", &["--login", "-i"]);
 
             let mut c = CommandBuilder::new(shell);
-            if !args.is_empty() { c.args(args); }
+            if !args.is_empty() {
+                c.args(args);
+            }
             c.cwd(&cwd);
             c.env("TERM", "xterm-256color");
             c.env("COLORTERM", "truecolor");
@@ -94,11 +105,17 @@ pub async fn pty_create(
     let writer = Arc::new(Mutex::new(writer));
     let master = Arc::new(Mutex::new(pair.master));
 
-    PTY_SESSIONS.lock().unwrap().insert(id.clone(), PtySession { writer: Arc::clone(&writer), master: Arc::clone(&master) });
+    PTY_SESSIONS.lock().unwrap().insert(
+        id.clone(),
+        PtySession {
+            writer: Arc::clone(&writer),
+            master: Arc::clone(&master),
+        },
+    );
 
     let app = app_handle.clone();
     let event_id = format!("pty:{}", id);
-    let exit_id  = format!("pty-exit:{}", id);
+    let exit_id = format!("pty-exit:{}", id);
     let id_clone = id.clone();
 
     std::thread::spawn(move || {
@@ -134,8 +151,15 @@ pub fn pty_write(id: String, data: String) -> Result<(), String> {
 pub fn pty_resize(id: String, cols: u16, rows: u16) -> Result<(), String> {
     let sessions = PTY_SESSIONS.lock().unwrap();
     if let Some(s) = sessions.get(&id) {
-        s.master.lock().unwrap()
-            .resize(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
+        s.master
+            .lock()
+            .unwrap()
+            .resize(PtySize {
+                rows,
+                cols,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
             .map_err(|e| e.to_string())?;
     }
     Ok(())

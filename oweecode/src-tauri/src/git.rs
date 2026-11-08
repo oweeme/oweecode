@@ -2,9 +2,9 @@
 // existing credentials (SSH agent, credential helper, GitHub CLI auth, etc.)
 // just work — no token management needed inside the IDE.
 
+use serde::Serialize;
 use std::fs;
 use std::path::Path;
-use serde::Serialize;
 
 fn git_args(v: &[&str]) -> Vec<String> {
     v.iter().map(|s| s.to_string()).collect()
@@ -20,7 +20,13 @@ async fn run_git(cwd: &str, args: Vec<String>) -> Result<String, String> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        let msg = if !stderr.is_empty() { stderr } else if !stdout.is_empty() { stdout } else { format!("git {} falló", args.join(" ")) };
+        let msg = if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            format!("git {} falló", args.join(" "))
+        };
         return Err(msg);
     }
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
@@ -66,10 +72,18 @@ pub async fn git_status(path: String) -> Result<GitStatusResult, String> {
     let check = tokio::process::Command::new("git")
         .args(["rev-parse", "--is-inside-work-tree"])
         .current_dir(&path)
-        .output().await;
+        .output()
+        .await;
     let is_repo = matches!(&check, Ok(o) if o.status.success());
     if !is_repo {
-        return Ok(GitStatusResult { is_repo: false, branch: String::new(), upstream: None, ahead: 0, behind: 0, files: vec![] });
+        return Ok(GitStatusResult {
+            is_repo: false,
+            branch: String::new(),
+            upstream: None,
+            ahead: 0,
+            behind: 0,
+            files: vec![],
+        });
     }
 
     let out = run_git(&path, git_args(&["status", "--porcelain=v2", "--branch"])).await?;
@@ -86,12 +100,17 @@ pub async fn git_status(path: String) -> Result<GitStatusResult, String> {
             upstream = Some(rest.to_string());
         } else if let Some(rest) = line.strip_prefix("# branch.ab ") {
             for part in rest.split_whitespace() {
-                if let Some(n) = part.strip_prefix('+') { ahead = n.parse().unwrap_or(0); }
-                else if let Some(n) = part.strip_prefix('-') { behind = n.parse().unwrap_or(0); }
+                if let Some(n) = part.strip_prefix('+') {
+                    ahead = n.parse().unwrap_or(0);
+                } else if let Some(n) = part.strip_prefix('-') {
+                    behind = n.parse().unwrap_or(0);
+                }
             }
         } else if let Some(rest) = line.strip_prefix("1 ") {
             let parts: Vec<&str> = rest.splitn(8, ' ').collect();
-            if parts.len() == 8 { push_status_entry(&mut files, parts[7], parts[0]); }
+            if parts.len() == 8 {
+                push_status_entry(&mut files, parts[7], parts[0]);
+            }
         } else if let Some(rest) = line.strip_prefix("2 ") {
             let parts: Vec<&str> = rest.splitn(9, ' ').collect();
             if parts.len() == 9 {
@@ -102,25 +121,42 @@ pub async fn git_status(path: String) -> Result<GitStatusResult, String> {
             let parts: Vec<&str> = rest.splitn(10, ' ').collect();
             if parts.len() == 10 {
                 files.push(GitFileEntry {
-                    path: parts[9].to_string(), staged: false, unstaged: false,
-                    untracked: false, conflicted: true, status_code: parts[0].to_string(),
+                    path: parts[9].to_string(),
+                    staged: false,
+                    unstaged: false,
+                    untracked: false,
+                    conflicted: true,
+                    status_code: parts[0].to_string(),
                 });
             }
         } else if let Some(path) = line.strip_prefix("? ") {
             files.push(GitFileEntry {
-                path: path.to_string(), staged: false, unstaged: false,
-                untracked: true, conflicted: false, status_code: "??".to_string(),
+                path: path.to_string(),
+                staged: false,
+                unstaged: false,
+                untracked: true,
+                conflicted: false,
+                status_code: "??".to_string(),
             });
         }
     }
 
-    Ok(GitStatusResult { is_repo: true, branch, upstream, ahead, behind, files })
+    Ok(GitStatusResult {
+        is_repo: true,
+        branch,
+        upstream,
+        ahead,
+        behind,
+        files,
+    })
 }
 
 #[tauri::command]
 pub async fn git_diff(path: String, file: String, staged: bool) -> Result<String, String> {
     let mut args = git_args(&["diff", "--no-color"]);
-    if staged { args.push("--cached".to_string()); }
+    if staged {
+        args.push("--cached".to_string());
+    }
     args.push("--".to_string());
     args.push(file);
     run_git(&path, args).await
@@ -151,8 +187,11 @@ pub async fn git_discard(path: String, files: Vec<String>) -> Result<(), String>
 pub async fn git_clean_untracked(path: String, files: Vec<String>) -> Result<(), String> {
     for f in &files {
         let full = Path::new(&path).join(f);
-        if full.is_dir() { let _ = fs::remove_dir_all(&full); }
-        else { let _ = fs::remove_file(&full); }
+        if full.is_dir() {
+            let _ = fs::remove_dir_all(&full);
+        } else {
+            let _ = fs::remove_file(&full);
+        }
     }
     Ok(())
 }
@@ -178,7 +217,10 @@ pub async fn git_fetch(path: String) -> Result<String, String> {
 }
 
 #[derive(Serialize)]
-pub struct GitBranch { pub name: String, pub current: bool }
+pub struct GitBranch {
+    pub name: String,
+    pub current: bool,
+}
 
 #[tauri::command]
 pub async fn git_branches(path: String) -> Result<Vec<GitBranch>, String> {
@@ -187,7 +229,9 @@ pub async fn git_branches(path: String) -> Result<Vec<GitBranch>, String> {
     for line in out.lines() {
         let current = line.starts_with('*');
         let name = line.trim_start_matches('*').trim().to_string();
-        if name.is_empty() || name.starts_with('(') { continue; }
+        if name.is_empty() || name.starts_with('(') {
+            continue;
+        }
         branches.push(GitBranch { name, current });
     }
     Ok(branches)
@@ -195,29 +239,46 @@ pub async fn git_branches(path: String) -> Result<Vec<GitBranch>, String> {
 
 #[tauri::command]
 pub async fn git_checkout_branch(path: String, branch: String) -> Result<(), String> {
-    run_git(&path, git_args(&["checkout", &branch])).await.map(|_| ())
+    run_git(&path, git_args(&["checkout", &branch]))
+        .await
+        .map(|_| ())
 }
 
 #[tauri::command]
 pub async fn git_create_branch(path: String, name: String) -> Result<(), String> {
-    run_git(&path, git_args(&["checkout", "-b", &name])).await.map(|_| ())
+    run_git(&path, git_args(&["checkout", "-b", &name]))
+        .await
+        .map(|_| ())
 }
 
 #[derive(Serialize)]
-pub struct GitCommitInfo { pub hash: String, pub author: String, pub date: String, pub message: String }
+pub struct GitCommitInfo {
+    pub hash: String,
+    pub author: String,
+    pub date: String,
+    pub message: String,
+}
 
 #[tauri::command]
 pub async fn git_log(path: String, limit: u32) -> Result<Vec<GitCommitInfo>, String> {
-    let out = run_git(&path, git_args(&[
-        "log", &format!("--max-count={}", limit), "--pretty=format:%H%x1f%an%x1f%ar%x1f%s",
-    ])).await?;
+    let out = run_git(
+        &path,
+        git_args(&[
+            "log",
+            &format!("--max-count={}", limit),
+            "--pretty=format:%H%x1f%an%x1f%ar%x1f%s",
+        ]),
+    )
+    .await?;
     let mut commits = Vec::new();
     for line in out.lines() {
         let parts: Vec<&str> = line.split('\u{1f}').collect();
         if parts.len() == 4 {
             commits.push(GitCommitInfo {
-                hash: parts[0].to_string(), author: parts[1].to_string(),
-                date: parts[2].to_string(), message: parts[3].to_string(),
+                hash: parts[0].to_string(),
+                author: parts[1].to_string(),
+                date: parts[2].to_string(),
+                message: parts[3].to_string(),
             });
         }
     }
@@ -249,9 +310,16 @@ pub async fn git_config_get(path: String, key: String) -> Result<Option<String>,
 }
 
 #[tauri::command]
-pub async fn git_config_set(path: String, key: String, value: String, global: bool) -> Result<(), String> {
+pub async fn git_config_set(
+    path: String,
+    key: String,
+    value: String,
+    global: bool,
+) -> Result<(), String> {
     let mut args = vec!["config".to_string()];
-    if global { args.push("--global".to_string()); }
+    if global {
+        args.push("--global".to_string());
+    }
     args.push(key);
     args.push(value);
     run_git(&path, args).await.map(|_| ())

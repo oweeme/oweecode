@@ -5,14 +5,14 @@
 // every open file of that language. The frontend calls `lsp_start` once per
 // language, then `lsp_complete`/`lsp_diagnostics`/`lsp_notify_open` per file.
 
-use std::io::{BufRead as LspBufRead, BufReader as LspBufReader, Write};
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicU64, Ordering as AtomicOrd};
-use std::sync::mpsc;
-use std::collections::HashMap;
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::io::{BufRead as LspBufRead, BufReader as LspBufReader, Write};
+use std::sync::atomic::{AtomicU64, Ordering as AtomicOrd};
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use crate::util::resolve_login_shell_path;
@@ -80,7 +80,9 @@ fn push_stderr_line(log: &Mutex<Vec<String>>, line: String) {
     let mut log = log.lock().unwrap();
     log.push(line);
     let len = log.len();
-    if len > 30 { log.drain(0..len - 30); }
+    if len > 30 {
+        log.drain(0..len - 30);
+    }
 }
 
 static LSP_SESSIONS: Lazy<Mutex<HashMap<String, Arc<LspSession>>>> =
@@ -89,15 +91,15 @@ static LSP_SESSIONS: Lazy<Mutex<HashMap<String, Arc<LspSession>>>> =
 fn lsp_binary(language: &str) -> Option<&'static str> {
     match language {
         "typescript" | "javascript" => Some("typescript-language-server"),
-        "vue"    => Some("vue-language-server"),
-        "go"     => Some("gopls"),
-        "rust"   => Some("rust-analyzer"),
-        "php"    => Some("phpactor"),
+        "vue" => Some("vue-language-server"),
+        "go" => Some("gopls"),
+        "rust" => Some("rust-analyzer"),
+        "php" => Some("phpactor"),
         "python" => Some("pylsp"),
-        "dart"   => Some("dart"),
+        "dart" => Some("dart"),
         "kotlin" => Some("kotlin-language-server"),
-        "cpp"    => Some("clangd"),
-        "qml"    => Some("qmlls"),
+        "cpp" => Some("clangd"),
+        "qml" => Some("qmlls"),
         _ => None,
     }
 }
@@ -120,7 +122,11 @@ fn lsp_args(language: &str) -> Vec<&'static str> {
 /// under it.
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 async fn resolve_typescript_tsdk() -> Option<String> {
-    let shell = if cfg!(target_os = "macos") { "/bin/zsh" } else { "/bin/bash" };
+    let shell = if cfg!(target_os = "macos") {
+        "/bin/zsh"
+    } else {
+        "/bin/bash"
+    };
     let global_root = tokio::process::Command::new(shell)
         .args(["--login", "-i", "-c", "npm root -g"])
         .output()
@@ -143,17 +149,23 @@ fn lsp_lang_id(language: &str) -> &'static str {
         "vue" => "vue",
         "typescript" => "typescript",
         "javascript" => "javascript",
-        "go" => "go", "rust" => "rust",
-        "php" => "php", "python" => "python",
-        "dart" => "dart", "kotlin" => "kotlin",
-        "cpp" => "cpp", "qml" => "qml",
+        "go" => "go",
+        "rust" => "rust",
+        "php" => "php",
+        "python" => "python",
+        "dart" => "dart",
+        "kotlin" => "kotlin",
+        "cpp" => "cpp",
+        "qml" => "qml",
         _ => "plaintext",
     }
 }
 
 fn lsp_write_msg(stdin: &mut std::process::ChildStdin, msg: &str) -> Result<(), String> {
     let frame = format!("Content-Length: {}\r\n\r\n{}", msg.len(), msg);
-    stdin.write_all(frame.as_bytes()).map_err(|e| e.to_string())?;
+    stdin
+        .write_all(frame.as_bytes())
+        .map_err(|e| e.to_string())?;
     stdin.flush().map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -162,14 +174,20 @@ fn lsp_read_msg(reader: &mut LspBufReader<std::process::ChildStdout>) -> Option<
     let mut content_len = 0usize;
     loop {
         let mut line = String::new();
-        if reader.read_line(&mut line).ok()? == 0 { return None; }
+        if reader.read_line(&mut line).ok()? == 0 {
+            return None;
+        }
         let line = line.trim_end_matches(|c| c == '\r' || c == '\n');
-        if line.is_empty() { break; }
+        if line.is_empty() {
+            break;
+        }
         if let Some(rest) = line.strip_prefix("Content-Length:") {
             content_len = rest.trim().parse().unwrap_or(0);
         }
     }
-    if content_len == 0 { return None; }
+    if content_len == 0 {
+        return None;
+    }
     let mut body = vec![0u8; content_len];
     use std::io::Read as IoR;
     reader.read_exact(&mut body).ok()?;
@@ -180,13 +198,21 @@ fn lsp_read_msg(reader: &mut LspBufReader<std::process::ChildStdout>) -> Option<
 /// lives: responses get routed to whichever `lsp_complete`/`lsp_start` call is
 /// waiting on that request id, and `publishDiagnostics` notifications are cached
 /// per-file for `lsp_diagnostics` to read on demand.
-fn lsp_start_reader(mut reader: LspBufReader<std::process::ChildStdout>, session: Arc<LspSession>, language: String) {
+fn lsp_start_reader(
+    mut reader: LspBufReader<std::process::ChildStdout>,
+    session: Arc<LspSession>,
+    language: String,
+) {
     std::thread::spawn(move || {
         while let Some(msg) = lsp_read_msg(&mut reader) {
             if let Some(id) = msg.get("id").and_then(|v| v.as_u64()) {
                 let tx = session.pending.lock().unwrap().remove(&id);
-                if let Some(tx) = tx { let _ = tx.send(msg); }
-            } else if msg.get("method").and_then(|v| v.as_str()) == Some("textDocument/publishDiagnostics") {
+                if let Some(tx) = tx {
+                    let _ = tx.send(msg);
+                }
+            } else if msg.get("method").and_then(|v| v.as_str())
+                == Some("textDocument/publishDiagnostics")
+            {
                 if let Some(params) = msg.get("params") {
                     let uri = params["uri"].as_str().unwrap_or("").to_string();
 
@@ -197,23 +223,34 @@ fn lsp_start_reader(mut reader: LspBufReader<std::process::ChildStdout>, session
                     // sit at the same range (e.g. "Could not find name 'aapi'" long
                     // after the typo was corrected to "api").
                     if let Some(msg_version) = params["version"].as_u64() {
-                        let latest_sent = session.doc_versions.lock().unwrap().get(&uri).copied().unwrap_or(0);
-                        if msg_version < latest_sent { continue; }
+                        let latest_sent = session
+                            .doc_versions
+                            .lock()
+                            .unwrap()
+                            .get(&uri)
+                            .copied()
+                            .unwrap_or(0);
+                        if msg_version < latest_sent {
+                            continue;
+                        }
                     }
 
                     let diags: Vec<LspDiagnosticItem> = params["diagnostics"]
-                        .as_array().unwrap_or(&vec![]).iter()
+                        .as_array()
+                        .unwrap_or(&vec![])
+                        .iter()
                         .filter_map(|d| {
                             let range = d.get("range")?;
                             Some(LspDiagnosticItem {
-                                message:    d["message"].as_str().unwrap_or("").to_string(),
-                                severity:   d["severity"].as_u64().unwrap_or(1) as u32,
+                                message: d["message"].as_str().unwrap_or("").to_string(),
+                                severity: d["severity"].as_u64().unwrap_or(1) as u32,
                                 start_line: range["start"]["line"].as_u64().unwrap_or(0) as u32,
-                                start_col:  range["start"]["character"].as_u64().unwrap_or(0) as u32,
-                                end_line:   range["end"]["line"].as_u64().unwrap_or(0) as u32,
-                                end_col:    range["end"]["character"].as_u64().unwrap_or(0) as u32,
+                                start_col: range["start"]["character"].as_u64().unwrap_or(0) as u32,
+                                end_line: range["end"]["line"].as_u64().unwrap_or(0) as u32,
+                                end_col: range["end"]["character"].as_u64().unwrap_or(0) as u32,
                             })
-                        }).collect();
+                        })
+                        .collect();
                     session.diagnostics.lock().unwrap().insert(uri, diags);
                 }
             }
@@ -223,7 +260,9 @@ fn lsp_start_reader(mut reader: LspBufReader<std::process::ChildStdout>, session
         // forever (this was the bug behind persistent "Broken pipe" errors).
         let mut sessions = LSP_SESSIONS.lock().unwrap();
         if let Some(current) = sessions.get(&language) {
-            if Arc::ptr_eq(current, &session) { sessions.remove(&language); }
+            if Arc::ptr_eq(current, &session) {
+                sessions.remove(&language);
+            }
         }
     });
 }
@@ -235,7 +274,18 @@ fn lsp_start_reader(mut reader: LspBufReader<std::process::ChildStdout>, session
 #[tauri::command]
 pub async fn lsp_check_installed() -> HashMap<String, Option<String>> {
     let mut out = HashMap::new();
-    for lang in ["typescript", "vue", "go", "rust", "php", "python", "dart", "kotlin", "cpp", "qml"] {
+    for lang in [
+        "typescript",
+        "vue",
+        "go",
+        "rust",
+        "php",
+        "python",
+        "dart",
+        "kotlin",
+        "cpp",
+        "qml",
+    ] {
         let bin = lsp_binary(lang).unwrap();
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         let found = crate::util::find_binary(bin).await;
@@ -250,14 +300,23 @@ pub async fn lsp_check_installed() -> HashMap<String, Option<String>> {
 pub async fn lsp_start(language: String, root_path: String) -> Result<bool, String> {
     {
         let sessions = LSP_SESSIONS.lock().unwrap();
-        if sessions.contains_key(&language) { return Ok(true); }
+        if sessions.contains_key(&language) {
+            return Ok(true);
+        }
     }
     let binary = lsp_binary(&language).ok_or_else(|| format!("No LSP para {}", language))?;
     let mut args: Vec<String> = lsp_args(&language).into_iter().map(String::from).collect();
     // clangd needs compile_commands.json (cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON) to know include paths
     if language == "cpp" {
         for dir in ["build", "build/Debug", "out/build", "."] {
-            if std::path::Path::new(&root_path).join(dir).join("compile_commands.json").exists() { args.push(format!("--compile-commands-dir={}/{}", root_path, dir)); break; }
+            if std::path::Path::new(&root_path)
+                .join(dir)
+                .join("compile_commands.json")
+                .exists()
+            {
+                args.push(format!("--compile-commands-dir={}/{}", root_path, dir));
+                break;
+            }
         }
     }
 
@@ -268,7 +327,9 @@ pub async fn lsp_start(language: String, root_path: String) -> Result<bool, Stri
     let resolved_path = resolve_login_shell_path().await;
 
     #[cfg(any(target_os = "macos", target_os = "linux"))]
-    let binary_path = crate::util::find_binary(binary).await.unwrap_or_else(|| binary.to_string());
+    let binary_path = crate::util::find_binary(binary)
+        .await
+        .unwrap_or_else(|| binary.to_string());
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     let binary_path = binary.to_string();
     let mut cmd = std::process::Command::new(&binary_path);
@@ -293,17 +354,17 @@ pub async fn lsp_start(language: String, root_path: String) -> Result<bool, Stri
         .spawn()
         .map_err(|e| format!("{binary} no encontrado: {e}. [{path_debug}] Instálalo con el comando que aparece en Preferencias → LSP."))?;
 
-    let stdin  = child.stdin.take().ok_or("no stdin")?;
+    let stdin = child.stdin.take().ok_or("no stdin")?;
     let stdout = LspBufReader::new(child.stdout.take().ok_or("no stdout")?);
     let stderr = child.stderr.take();
 
     let session = Arc::new(LspSession {
-        stdin:        Mutex::new(stdin),
-        next_id:      AtomicU64::new(1),
-        pending:      Mutex::new(HashMap::new()),
-        diagnostics:  Mutex::new(HashMap::new()),
-        initialized:  std::sync::atomic::AtomicBool::new(false),
-        stderr_log:   Mutex::new(Vec::new()),
+        stdin: Mutex::new(stdin),
+        next_id: AtomicU64::new(1),
+        pending: Mutex::new(HashMap::new()),
+        diagnostics: Mutex::new(HashMap::new()),
+        initialized: std::sync::atomic::AtomicBool::new(false),
+        stderr_log: Mutex::new(Vec::new()),
         doc_versions: Mutex::new(HashMap::new()),
     });
 
@@ -325,11 +386,15 @@ pub async fn lsp_start(language: String, root_path: String) -> Result<bool, Stri
     lsp_start_reader(stdout, session.clone(), language.clone());
 
     // Send initialize
-    let req_id   = session.next_id.fetch_add(1, AtomicOrd::SeqCst);
+    let req_id = session.next_id.fetch_add(1, AtomicOrd::SeqCst);
     let root_uri = format!("file://{}", root_path);
 
     #[cfg(any(target_os = "macos", target_os = "linux"))]
-    let tsdk = if language == "vue" { resolve_typescript_tsdk().await } else { None };
+    let tsdk = if language == "vue" {
+        resolve_typescript_tsdk().await
+    } else {
+        None
+    };
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     let tsdk: Option<String> = None;
 
@@ -349,20 +414,29 @@ pub async fn lsp_start(language: String, root_path: String) -> Result<bool, Stri
     let init = json!({
         "jsonrpc": "2.0", "id": req_id, "method": "initialize",
         "params": init_params
-    }).to_string();
+    })
+    .to_string();
 
     let (tx, rx) = mpsc::channel::<Value>();
     session.pending.lock().unwrap().insert(req_id, tx);
-    { let mut stdin = session.stdin.lock().unwrap(); lsp_write_msg(&mut stdin, &init)?; }
+    {
+        let mut stdin = session.stdin.lock().unwrap();
+        lsp_write_msg(&mut stdin, &init)?;
+    }
 
     // Wait for initialize response (blocking, called in spawn_blocking context is fine)
     tokio::task::spawn_blocking(move || {
         let _ = rx.recv_timeout(std::time::Duration::from_secs(10));
-    }).await.ok();
+    })
+    .await
+    .ok();
 
     // Send initialized notification
     let notif = json!({ "jsonrpc": "2.0", "method": "initialized", "params": {} }).to_string();
-    { let mut stdin = session.stdin.lock().unwrap(); lsp_write_msg(&mut stdin, &notif)?; }
+    {
+        let mut stdin = session.stdin.lock().unwrap();
+        lsp_write_msg(&mut stdin, &notif)?;
+    }
     session.initialized.store(true, AtomicOrd::SeqCst);
 
     LSP_SESSIONS.lock().unwrap().insert(language, session);
@@ -381,10 +455,15 @@ pub async fn lsp_complete(
     col: u32,
 ) -> Result<Vec<LspCompletionItem>, String> {
     let session = LSP_SESSIONS.lock().unwrap().get(&language).cloned();
-    let session = match session { Some(s) => s, None => return Ok(vec![]) };
-    if !session.initialized.load(AtomicOrd::SeqCst) { return Ok(vec![]); }
+    let session = match session {
+        Some(s) => s,
+        None => return Ok(vec![]),
+    };
+    if !session.initialized.load(AtomicOrd::SeqCst) {
+        return Ok(vec![]);
+    }
 
-    let uri     = format!("file://{}", file_path);
+    let uri = format!("file://{}", file_path);
     let lang_id = lsp_lang_id(&language);
 
     // Sync document state. next_doc_version starts from 1 (didOpen's hardcoded
@@ -400,7 +479,8 @@ pub async fn lsp_complete(
             "textDocument": { "uri": uri, "version": ver, "languageId": lang_id },
             "contentChanges": [{ "text": content }]
         }
-    }).to_string();
+    })
+    .to_string();
 
     let req_id = session.next_id.fetch_add(1, AtomicOrd::SeqCst);
     let comp_req = json!({
@@ -410,13 +490,16 @@ pub async fn lsp_complete(
             "position": { "line": line, "character": col },
             "context": { "triggerKind": 1 }
         }
-    }).to_string();
+    })
+    .to_string();
 
     let (tx, rx) = mpsc::channel::<Value>();
     session.pending.lock().unwrap().insert(req_id, tx);
     {
         let mut stdin = session.stdin.lock().unwrap();
-        if let Err(e) = lsp_write_msg(&mut stdin, &did_change).and_then(|_| lsp_write_msg(&mut stdin, &comp_req)) {
+        if let Err(e) = lsp_write_msg(&mut stdin, &did_change)
+            .and_then(|_| lsp_write_msg(&mut stdin, &comp_req))
+        {
             drop(stdin);
             return Err(lsp_dead_session_error(&language, &session, e));
         }
@@ -433,9 +516,14 @@ pub async fn lsp_complete(
     // not the typical wait.
     let response = tokio::task::spawn_blocking(move || {
         rx.recv_timeout(std::time::Duration::from_secs(45)).ok()
-    }).await.ok().flatten();
+    })
+    .await
+    .ok()
+    .flatten();
 
-    let Some(resp) = response else { return Ok(vec![]); };
+    let Some(resp) = response else {
+        return Ok(vec![]);
+    };
 
     let items_arr = if let Some(arr) = resp["result"].as_array() {
         arr.to_vec()
@@ -458,36 +546,58 @@ pub async fn lsp_complete(
         items_arr.iter().collect()
     } else {
         let lower = prefix.to_lowercase();
-        let matches: Vec<&Value> = items_arr.iter()
-            .filter(|item| item["label"].as_str().is_some_and(|l| l.to_lowercase().starts_with(&lower)))
+        let matches: Vec<&Value> = items_arr
+            .iter()
+            .filter(|item| {
+                item["label"]
+                    .as_str()
+                    .is_some_and(|l| l.to_lowercase().starts_with(&lower))
+            })
             .collect();
-        if matches.is_empty() { items_arr.iter().collect() } else { matches }
+        if matches.is_empty() {
+            items_arr.iter().collect()
+        } else {
+            matches
+        }
     };
 
-    Ok(filtered.iter().take(200).filter_map(|item| {
-        let label = item["label"].as_str()?.to_string();
-        // Prefer textEdit.newText/range when present — it's the server's exact
-        // instruction for what to replace, which for member completions right
-        // after a `.` often spans the dot itself (see edit_start_col doc comment
-        // on LspCompletionItem). Plain insertText/label have no range attached,
-        // so the frontend has to guess — that guess is what caused "api..get".
-        let text_edit = &item["textEdit"];
-        let (insert_text, edit_start_col, edit_end_col) = if let Some(new_text) = text_edit["newText"].as_str() {
-            let start = text_edit["range"]["start"]["character"].as_u64().map(|c| c as u32);
-            let end   = text_edit["range"]["end"]["character"].as_u64().map(|c| c as u32);
-            (Some(new_text.to_string()), start, end)
-        } else {
-            (item["insertText"].as_str().map(|s| s.to_string()), None, None)
-        };
-        Some(LspCompletionItem {
-            label,
-            kind: item["kind"].as_u64().map(|k| k as u32),
-            detail: item["detail"].as_str().map(|s| s.to_string()),
-            insert_text,
-            edit_start_col,
-            edit_end_col,
+    Ok(filtered
+        .iter()
+        .take(200)
+        .filter_map(|item| {
+            let label = item["label"].as_str()?.to_string();
+            // Prefer textEdit.newText/range when present — it's the server's exact
+            // instruction for what to replace, which for member completions right
+            // after a `.` often spans the dot itself (see edit_start_col doc comment
+            // on LspCompletionItem). Plain insertText/label have no range attached,
+            // so the frontend has to guess — that guess is what caused "api..get".
+            let text_edit = &item["textEdit"];
+            let (insert_text, edit_start_col, edit_end_col) =
+                if let Some(new_text) = text_edit["newText"].as_str() {
+                    let start = text_edit["range"]["start"]["character"]
+                        .as_u64()
+                        .map(|c| c as u32);
+                    let end = text_edit["range"]["end"]["character"]
+                        .as_u64()
+                        .map(|c| c as u32);
+                    (Some(new_text.to_string()), start, end)
+                } else {
+                    (
+                        item["insertText"].as_str().map(|s| s.to_string()),
+                        None,
+                        None,
+                    )
+                };
+            Some(LspCompletionItem {
+                label,
+                kind: item["kind"].as_u64().map(|k| k as u32),
+                detail: item["detail"].as_str().map(|s| s.to_string()),
+                insert_text,
+                edit_start_col,
+                edit_end_col,
+            })
         })
-    }).collect())
+        .collect())
 }
 
 #[derive(Serialize, Clone, Debug, Default)]
@@ -521,10 +631,15 @@ pub async fn lsp_signature_help(
     col: u32,
 ) -> Result<Option<LspSignatureHelp>, String> {
     let session = LSP_SESSIONS.lock().unwrap().get(&language).cloned();
-    let session = match session { Some(s) => s, None => return Ok(None) };
-    if !session.initialized.load(AtomicOrd::SeqCst) { return Ok(None); }
+    let session = match session {
+        Some(s) => s,
+        None => return Ok(None),
+    };
+    if !session.initialized.load(AtomicOrd::SeqCst) {
+        return Ok(None);
+    }
 
-    let uri     = format!("file://{}", file_path);
+    let uri = format!("file://{}", file_path);
     let lang_id = lsp_lang_id(&language);
 
     let ver = next_doc_version(&session, &uri);
@@ -534,7 +649,8 @@ pub async fn lsp_signature_help(
             "textDocument": { "uri": uri, "version": ver, "languageId": lang_id },
             "contentChanges": [{ "text": content }]
         }
-    }).to_string();
+    })
+    .to_string();
 
     let req_id = session.next_id.fetch_add(1, AtomicOrd::SeqCst);
     let sig_req = json!({
@@ -543,13 +659,16 @@ pub async fn lsp_signature_help(
             "textDocument": { "uri": uri },
             "position": { "line": line, "character": col }
         }
-    }).to_string();
+    })
+    .to_string();
 
     let (tx, rx) = mpsc::channel::<Value>();
     session.pending.lock().unwrap().insert(req_id, tx);
     {
         let mut stdin = session.stdin.lock().unwrap();
-        if let Err(e) = lsp_write_msg(&mut stdin, &did_change).and_then(|_| lsp_write_msg(&mut stdin, &sig_req)) {
+        if let Err(e) =
+            lsp_write_msg(&mut stdin, &did_change).and_then(|_| lsp_write_msg(&mut stdin, &sig_req))
+        {
             drop(stdin);
             return Err(lsp_dead_session_error(&language, &session, e));
         }
@@ -560,41 +679,67 @@ pub async fn lsp_signature_help(
     // project) — no need for the 45s cold-start margin lsp_complete needs.
     let response = tokio::task::spawn_blocking(move || {
         rx.recv_timeout(std::time::Duration::from_secs(10)).ok()
-    }).await.ok().flatten();
+    })
+    .await
+    .ok()
+    .flatten();
 
-    let Some(resp) = response else { return Ok(None); };
+    let Some(resp) = response else {
+        return Ok(None);
+    };
     let result = &resp["result"];
-    if result.is_null() { return Ok(None); }
+    if result.is_null() {
+        return Ok(None);
+    }
 
-    let signatures: Vec<LspSignature> = result["signatures"].as_array().unwrap_or(&vec![]).iter().map(|s| {
-        let doc = match &s["documentation"] {
-            Value::String(text) => Some(text.clone()),
-            Value::Object(o) => o.get("value").and_then(|v| v.as_str()).map(|s| s.to_string()),
-            _ => None,
-        };
-        let parameters = s["parameters"].as_array().unwrap_or(&vec![]).iter().filter_map(|p| {
-            // `label` is either a plain string, or a [start, end] pair of
-            // offsets into the signature's own label string.
-            match &p["label"] {
-                Value::String(text) => Some(LspSignatureParam { label: text.clone() }),
-                Value::Array(range) if range.len() == 2 => {
-                    let sig_label = s["label"].as_str().unwrap_or("");
-                    let start = range[0].as_u64()? as usize;
-                    let end   = range[1].as_u64()? as usize;
-                    let chars: Vec<char> = sig_label.chars().collect();
-                    Some(LspSignatureParam { label: chars.get(start..end)?.iter().collect() })
-                }
+    let signatures: Vec<LspSignature> = result["signatures"]
+        .as_array()
+        .unwrap_or(&vec![])
+        .iter()
+        .map(|s| {
+            let doc = match &s["documentation"] {
+                Value::String(text) => Some(text.clone()),
+                Value::Object(o) => o
+                    .get("value")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 _ => None,
+            };
+            let parameters = s["parameters"]
+                .as_array()
+                .unwrap_or(&vec![])
+                .iter()
+                .filter_map(|p| {
+                    // `label` is either a plain string, or a [start, end] pair of
+                    // offsets into the signature's own label string.
+                    match &p["label"] {
+                        Value::String(text) => Some(LspSignatureParam {
+                            label: text.clone(),
+                        }),
+                        Value::Array(range) if range.len() == 2 => {
+                            let sig_label = s["label"].as_str().unwrap_or("");
+                            let start = range[0].as_u64()? as usize;
+                            let end = range[1].as_u64()? as usize;
+                            let chars: Vec<char> = sig_label.chars().collect();
+                            Some(LspSignatureParam {
+                                label: chars.get(start..end)?.iter().collect(),
+                            })
+                        }
+                        _ => None,
+                    }
+                })
+                .collect();
+            LspSignature {
+                label: s["label"].as_str().unwrap_or("").to_string(),
+                documentation: doc,
+                parameters,
             }
-        }).collect();
-        LspSignature {
-            label: s["label"].as_str().unwrap_or("").to_string(),
-            documentation: doc,
-            parameters,
-        }
-    }).collect();
+        })
+        .collect();
 
-    if signatures.is_empty() { return Ok(None); }
+    if signatures.is_empty() {
+        return Ok(None);
+    }
 
     Ok(Some(LspSignatureHelp {
         signatures,
@@ -607,14 +752,19 @@ pub async fn lsp_signature_help(
 /// "const router=use|" (cursor at `|`) returns "use". Used to filter completions
 /// server-side before truncating to the top N.
 fn current_word_prefix(content: &str, line: u32, col: u32) -> String {
-    let Some(line_text) = content.lines().nth(line as usize) else { return String::new() };
+    let Some(line_text) = content.lines().nth(line as usize) else {
+        return String::new();
+    };
     // Char-based (not byte-based) indexing: col comes from a UTF-16 offset
     // in the editor, and byte-slicing a str containing multi-byte chars
     // (e.g. accented text in comments/strings) could panic on non-boundary.
     let chars: Vec<char> = line_text.chars().collect();
     let col = (col as usize).min(chars.len());
     let mut start = col;
-    while start > 0 && { let c = chars[start - 1]; c.is_alphanumeric() || c == '_' || c == '$' } {
+    while start > 0 && {
+        let c = chars[start - 1];
+        c.is_alphanumeric() || c == '_' || c == '$'
+    } {
         start -= 1;
     }
     chars[start..col].iter().collect()
@@ -622,22 +772,43 @@ fn current_word_prefix(content: &str, line: u32, col: u32) -> String {
 
 /// Returns whatever diagnostics the server has last pushed for `file_path` (cached, not re-requested).
 #[tauri::command]
-pub async fn lsp_diagnostics(language: String, file_path: String) -> Result<Vec<LspDiagnosticItem>, String> {
+pub async fn lsp_diagnostics(
+    language: String,
+    file_path: String,
+) -> Result<Vec<LspDiagnosticItem>, String> {
     let session = LSP_SESSIONS.lock().unwrap().get(&language).cloned();
-    let session = match session { Some(s) => s, None => return Ok(vec![]) };
+    let session = match session {
+        Some(s) => s,
+        None => return Ok(vec![]),
+    };
     let uri = format!("file://{}", file_path);
-    let result = session.diagnostics.lock().unwrap().get(&uri).cloned().unwrap_or_default();
+    let result = session
+        .diagnostics
+        .lock()
+        .unwrap()
+        .get(&uri)
+        .cloned()
+        .unwrap_or_default();
     Ok(result)
 }
 
 /// Tells the server a file was opened, so it starts tracking it (required before completions
 /// or diagnostics work for that file — see the LSP `textDocument/didOpen` notification).
 #[tauri::command]
-pub async fn lsp_notify_open(language: String, file_path: String, content: String) -> Result<(), String> {
+pub async fn lsp_notify_open(
+    language: String,
+    file_path: String,
+    content: String,
+) -> Result<(), String> {
     let session = LSP_SESSIONS.lock().unwrap().get(&language).cloned();
-    let session = match session { Some(s) => s, None => return Ok(()) };
-    if !session.initialized.load(AtomicOrd::SeqCst) { return Ok(()); }
-    let uri     = format!("file://{}", file_path);
+    let session = match session {
+        Some(s) => s,
+        None => return Ok(()),
+    };
+    if !session.initialized.load(AtomicOrd::SeqCst) {
+        return Ok(());
+    }
+    let uri = format!("file://{}", file_path);
     let lang_id = lsp_lang_id(&language);
     let msg = json!({
         "jsonrpc": "2.0", "method": "textDocument/didOpen",
@@ -658,7 +829,9 @@ pub async fn lsp_notify_open(language: String, file_path: String, content: Strin
 fn lsp_dead_session_error(language: &str, session: &Arc<LspSession>, write_err: String) -> String {
     let mut sessions = LSP_SESSIONS.lock().unwrap();
     if let Some(current) = sessions.get(language) {
-        if Arc::ptr_eq(current, session) { sessions.remove(language); }
+        if Arc::ptr_eq(current, session) {
+            sessions.remove(language);
+        }
     }
     drop(sessions);
     let stderr_tail = session.stderr_log.lock().unwrap().join(" | ");
@@ -675,7 +848,9 @@ pub async fn lsp_stop(language: String) -> Result<(), String> {
     let session = LSP_SESSIONS.lock().unwrap().remove(&language);
     if let Some(s) = session {
         if let Ok(mut stdin) = s.stdin.lock() {
-            let shutdown = json!({ "jsonrpc": "2.0", "id": 999999, "method": "shutdown", "params": null }).to_string();
+            let shutdown =
+                json!({ "jsonrpc": "2.0", "id": 999999, "method": "shutdown", "params": null })
+                    .to_string();
             let _ = lsp_write_msg(&mut stdin, &shutdown);
             let exit = json!({ "jsonrpc": "2.0", "method": "exit", "params": null }).to_string();
             let _ = lsp_write_msg(&mut stdin, &exit);

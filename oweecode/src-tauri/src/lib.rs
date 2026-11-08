@@ -18,40 +18,40 @@
 //   agent          local AI agent: project-confined fs/shell tools, Ollama
 //                  tool-calling chat and model install/pull
 
-mod util;
 mod agent;
-mod db;
-mod redis_db;
-mod pty;
-mod filesystem;
 mod ai;
-mod remote;
-mod git;
 mod containers;
-mod linting;
-mod http_client;
-mod lsp;
-mod tools;
-mod secrets;
+mod db;
 mod devserver;
+mod filesystem;
+mod git;
+mod http_client;
+mod linting;
+mod lsp;
 mod oweeme;
+mod pty;
+mod redis_db;
+mod remote;
+mod secrets;
+mod tools;
+mod util;
 
 use agent::*;
-use db::*;
-use redis_db::*;
-use pty::*;
-use filesystem::*;
 use ai::*;
-use remote::*;
-use git::*;
 use containers::*;
-use linting::*;
-use http_client::*;
-use lsp::*;
-use tools::*;
-use secrets::*;
+use db::*;
 use devserver::*;
+use filesystem::*;
+use git::*;
+use http_client::*;
+use linting::*;
+use lsp::*;
 use oweeme::*;
+use pty::*;
+use redis_db::*;
+use remote::*;
+use secrets::*;
+use tools::*;
 
 // Running via `npm run tauri dev` attaches this process to the terminal's
 // controlling tty and foreground process group — so an accidental Ctrl+Z (or
