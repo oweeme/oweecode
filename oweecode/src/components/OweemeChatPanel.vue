@@ -86,11 +86,15 @@ async function connect() {
 
 // ── sharing ────────────────────────────────────────────────────────────────
 /** Screenshot or image → compressed below 300 KB → attached to the next message. */
-async function attachImage(file: Blob | null | undefined, name = 'captura') {
+// Screenshots: PNG only if it fits at full size (sharp text), else WebP/JPEG at 1600 px.
+// Flow pictures: PNG from 2400 px down to 1400 px before any lossy format.
+const SCREENSHOT = { maxSide: 1600, preferPng: true, pngMinSide: 1600 }
+const DIAGRAM = { maxSide: 2400, preferPng: true, pngMinSide: 1400 }
+async function attachImage(file: Blob | null | undefined, name = 'captura', opts = SCREENSHOT) {
   if (!file || !file.type.startsWith('image/')) return
   compressing.value = true
   try {
-    const img = await compressForChat(file)
+    const img = await compressForChat(file, opts)
     attach.value = { kind: 'image', name: `${name} · ${img.width}×${img.height} · ${Math.round(img.bytes / 1024)} KB`, content: img.dataUrl }
     if (!text.value.trim()) text.value = t('owDefaultImage')
   } catch {
@@ -104,8 +108,8 @@ async function attachFlowSnapshot() {
   if (!flowState.nodes.some((n: any) => !n.hidden)) { flash(t('owNoFlow')); return }
   const title = flowState.mode === 'map' ? t('owProjectMap') : flowState.flowName
   try {
-    const png = await renderFlowPng(flowState.nodes, flowState.edges, title, visibleFlowFrame())
-    await attachImage(png, `🔀 ${title}`)
+    const png = await renderFlowPng(flowState.nodes, flowState.edges, title, visibleFlowFrame(), DIAGRAM.maxSide)
+    await attachImage(png, `🔀 ${title}`, DIAGRAM)
     if (attach.value?.kind === 'image' && text.value === t('owDefaultImage')) text.value = t('owDefaultFlow')
   } catch {
     flash(t('owImageTooLarge'))

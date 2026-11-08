@@ -90,14 +90,15 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 /** Paints the flow on a dark canvas (same look as the Flows tab) and returns it as PNG. */
-export async function renderFlowPng(nodes: any[], edges: any[], title: string, frame?: Frame | null): Promise<Blob> {
+export async function renderFlowPng(nodes: any[], edges: any[], title: string, frame?: Frame | null, maxSide = 4000): Promise<Blob> {
   const L = flowLayout(nodes, edges, frame)
   if (!L.boxes.length) throw new Error('empty-flow')
   const TITLE_H = 34
   // A frame keeps its on-screen zoom (×2 for sharp text); the whole flow is drawn at 2×.
-  // Either way the canvas stays under 4000 px; compressForChat() then brings it to ≤ 1600 px.
+  // Either way the canvas fits in maxSide, so it is drawn at its final size: resizing it
+  // afterwards would soften text and lines.
   const want = frame ? frame.zoom * 2 : 2
-  const scale = Math.max(0.3, Math.min(want, 4000 / Math.max(L.width, L.height + TITLE_H)))
+  const scale = Math.max(0.3, Math.min(want, maxSide / Math.max(L.width, L.height + TITLE_H)))
   const canvas = document.createElement('canvas')
   canvas.width = Math.ceil(L.width * scale)
   canvas.height = Math.ceil((L.height + TITLE_H) * scale)
@@ -107,8 +108,7 @@ export async function renderFlowPng(nodes: any[], edges: any[], title: string, f
 
   ctx.fillStyle = '#141519'
   ctx.fillRect(0, 0, L.width, L.height + TITLE_H)
-  ctx.fillStyle = '#2a2c33' // dotted grid, like the editor background
-  for (let x = 10; x < L.width; x += 20) for (let y = TITLE_H + 10; y < L.height + TITLE_H; y += 20) ctx.fillRect(x, y, 1.2, 1.2)
+  // no dotted grid: it adds noise in JPEG and weight in every format
 
   ctx.fillStyle = '#e6e6e6'
   ctx.font = `600 15px ${font}`

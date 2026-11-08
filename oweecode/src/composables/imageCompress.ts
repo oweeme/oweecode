@@ -26,30 +26,66 @@ function toDataUrl(blob: Blob): Promise<string> {
   })
 }
 
-export async function compressForChat(file: Blob, maxBytes = CHAT_IMAGE_MAX_BYTES, maxSide = 1600): Promise<{ dataUrl: string; bytes: number; width: number; height: number }> {
+export interface ChatCompressOptions {
+  maxBytes?: number
+  maxSide?: number
+  /**
+   * Diagrams (flow snapshots): try lossless PNG first, shrinking down to `pngMinSide`,
+   * before falling back to WebP/JPEG. Text and thin lines stay sharp; JPEG (what
+   * WebKitGTK uses, it cannot encode WebP) blurs them.
+   */
+  preferPng?: boolean
+  pngMinSide?: number
+}
+
+export async function compressForChat(file: Blob, opts: ChatCompressOptions | number = {}, legacyMaxSide?: number): Promise<{ dataUrl: string; bytes: number; width: number; height: number }> {
+  const o: ChatCompressOptions = typeof opts === 'number' ? { maxBytes: opts, maxSide: legacyMaxSide } : opts
+  const maxBytes = o.maxBytes ?? CHAT_IMAGE_MAX_BYTES
+  const maxSide = o.maxSide ?? 1600
   if (!file.type.startsWith('image/')) throw new Error('not-image')
   const bitmap = await createImageBitmap(file)
-  let { width, height } = fitWithin(bitmap.width, bitmap.height, maxSide)
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
-  for (let round = 0; round < 5; round++) {
+  const draw = (width: number, height: number) => {
     canvas.width = width
     canvas.height = height
     ctx.fillStyle = '#fff'
     ctx.fillRect(0, 0, width, height)
     ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(bitmap, 0, 0, width, height)
+  }
+  const done = async (blob: Blob, width: number, height: number) => {
+    bitmap.close()
+    return { dataUrl: await toDataUrl(blob), bytes: blob.size, width, height }
+  }
+
+  if (o.preferPng) {
+    for (const side of pngSides(maxSide, o.pngMinSide ?? 1200)) {
+      const { width, height } = fitWithin(bitmap.width, bitmap.height, side)
+      draw(width, height)
+      const blob = await encode(canvas, 'image/png', 1)
+      if (blob && blob.size <= maxBytes) return done(blob, width, height)
+    }
+  }
+
+  let { width, height } = fitWithin(bitmap.width, bitmap.height, maxSide)
+  for (let round = 0; round < 5; round++) {
+    draw(width, height)
     for (const q of QUALITY_STEPS) {
       let blob = await encode(canvas, 'image/webp', q)
       if (!blob || blob.type !== 'image/webp') blob = await encode(canvas, 'image/jpeg', q)
-      if (blob && blob.size <= maxBytes) {
-        bitmap.close()
-        return { dataUrl: await toDataUrl(blob), bytes: blob.size, width, height }
-      }
+      if (blob && blob.size <= maxBytes) return done(blob, width, height)
     }
     width = Math.round(width * 0.8)
     height = Math.round(height * 0.8)
   }
   bitmap.close()
   throw new Error('too-large')
+}
+
+/** Longest sides tried for a PNG: from maxSide down to minSide, 15 % smaller each step. */
+export function pngSides(maxSide: number, minSide: number): number[] {
+  const out: number[] = []
+  for (let s = maxSide; s >= minSide; s = Math.round(s * 0.85)) out.push(s)
+  return out
 }

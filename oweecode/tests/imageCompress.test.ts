@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitWithin, QUALITY_STEPS } from '../src/composables/imageCompress'
+import { fitWithin, pngSides, QUALITY_STEPS } from '../src/composables/imageCompress'
 
 describe('image compression plan', () => {
   it('keeps the aspect ratio and never upscales', () => {
@@ -10,5 +10,14 @@ describe('image compression plan', () => {
   it('tries high quality first and goes down', () => {
     expect([...QUALITY_STEPS].sort((a, b) => b - a)).toEqual(QUALITY_STEPS)
     expect(QUALITY_STEPS[0]).toBeGreaterThanOrEqual(0.8)
+  })
+})
+
+describe('PNG sizes for diagrams', () => {
+  it('goes from the biggest size down, never below the minimum', () => {
+    const s = pngSides(2400, 1200)
+    expect(s[0]).toBe(2400)
+    expect(Math.min(...s)).toBeGreaterThanOrEqual(1200)
+    expect([...s].sort((a, b) => b - a)).toEqual(s)
   })
 })
