@@ -37,3 +37,18 @@ describe('flow snapshot layout', () => {
     expect(flowLayout([], []).boxes).toEqual([])
   })
 })
+
+describe('flow snapshot of the on-screen frame', () => {
+  const frame = { x: 250, y: -50, w: 400, h: 300, zoom: 1 }
+  it('keeps only the blocks inside the frame, placed relative to it', () => {
+    const L = flowLayout([node('a', 0, 0), node('b', 300, 0), node('c', 2000, 0)], [], frame)
+    expect(L.boxes.map((b) => b.id)).toEqual(['b'])
+    expect(L.boxes[0]).toMatchObject({ x: 50, y: 50 })
+    expect([L.width, L.height]).toEqual([400, 300])
+  })
+  it('keeps connections that come from outside the frame', () => {
+    const L = flowLayout([node('a', 0, 0), node('b', 300, 0), node('c', 2000, 0)], [{ source: 'a', target: 'b' }, { source: 'a', target: 'c' }], frame)
+    expect(L.links).toHaveLength(1)
+    expect(L.links[0].from.x).toBe(200 - 250)
+  })
+})

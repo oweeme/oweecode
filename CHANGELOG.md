@@ -7,7 +7,7 @@
 - La sala cuyo repositorio coincide con el `remote` de Git del proyecto abierto se abre sola (SSH, HTTPS y `.git` se reconocen como el mismo repositorio).
 - **Adjuntar selección:** envía el código seleccionado con su archivo y rama como contexto.
 - Crear salas desde el editor (con el repositorio del proyecto ya rellenado) y elegir servidor: oweeme.com, `oweeme_pod` local u otro.
-- **Compartir en el chat:** código seleccionado, el archivo activo completo, tu flujo (o el mapa del proyecto) como imagen de todo el diagrama, comprimida a menos de 300 KB, y tu vista previa del navegador (con la dirección de tu red local para que el equipo la abra). Lo que comparten los demás se abre con un clic: abrir el archivo en tu proyecto o abrir la vista previa.
+- **Compartir en el chat:** código seleccionado, el archivo activo completo, tu flujo (o el mapa del proyecto) como imagen de lo que se ve en el marco de la pestaña Flujos (o del diagrama completo si está cerrada), comprimida a menos de 300 KB, y tu vista previa del navegador (con la dirección de tu red local para que el equipo la abra). Lo que comparten los demás se abre con un clic: abrir el archivo en tu proyecto o abrir la vista previa.
 - **Pestaña Tareas:** el tablero del proyecto vinculado a la sala. Abrir una tarea, comentarla y moverla de columna; el cliente ve el cambio en su propuesta de Oweeme.
 - **Capturas en el chat:** pega una captura con Ctrl+V (OweeCapture la deja en el portapapeles con Ctrl+Alt+S), arrástrala o elígela; se comprime sola a menos de 300 KB.
 - Si tu token es antiguo (solo chat), el panel explica cómo crear uno nuevo con permiso de tareas y ofrece «Cambiar token».

@@ -16,7 +16,7 @@ import { OWEEME_SERVERS, useOweemeChat, type OweemeAttachment } from '../composa
 import { taskKeyFromText, useOweemeTasks } from '../composables/useOweemeTasks'
 import { useOweemeShare, type PreviewShare } from '../composables/useOweemeShare'
 import { compressForChat } from '../composables/imageCompress'
-import { renderFlowPng } from '../composables/flowSnapshot'
+import { renderFlowPng, visibleFlowFrame } from '../composables/flowSnapshot'
 import { flowState } from '../composables/useFlowState'
 
 const store = useEditorStore()
@@ -99,12 +99,12 @@ async function attachImage(file: Blob | null | undefined, name = 'captura') {
     compressing.value = false
   }
 }
-/** The Flows tab is sent as a picture of the whole flow (like a screenshot), compressed below 300 KB. */
+/** The Flows tab is sent as a picture of what you see in it (or the whole flow if it is closed), compressed below 300 KB. */
 async function attachFlowSnapshot() {
   if (!flowState.nodes.some((n: any) => !n.hidden)) { flash(t('owNoFlow')); return }
   const title = flowState.mode === 'map' ? t('owProjectMap') : flowState.flowName
   try {
-    const png = await renderFlowPng(flowState.nodes, flowState.edges, title)
+    const png = await renderFlowPng(flowState.nodes, flowState.edges, title, visibleFlowFrame())
     await attachImage(png, `🔀 ${title}`)
     if (attach.value?.kind === 'image' && text.value === t('owDefaultImage')) text.value = t('owDefaultFlow')
   } catch {

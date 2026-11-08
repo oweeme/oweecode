@@ -1,44 +1,72 @@
 // Draws the Flows tab (blocks + connections) as a picture, so it can be sent to
 // the Oweeme chat like a screenshot. It paints straight onto a canvas from the
-// flow data (not from the screen), so it works even when the Flows tab is closed
-// and shows the whole flow, not only the part that fits in the window.
+// flow data (not from the screen), so the result is sharp and needs no permission.
 //
-//   flowLayout(nodes, edges)   pure: boxes and connection points (tested)
-//   renderFlowPng(nodes, edges, title)  → PNG Blob, then compressForChat() it
+// What gets drawn:
+//   - the frame you are looking at in the Flows tab (same position and zoom), or
+//   - the whole flow when the Flows tab is not on screen.
+//
+//   visibleFlowFrame()                       the on-screen frame, in flow coordinates
+//   flowLayout(nodes, edges, frame?)         pure: boxes and connection points (tested)
+//   renderFlowPng(nodes, edges, title, frame?)  → PNG Blob, then compressForChat() it
 import { kindInfo } from './flowKinds'
 
 export interface Box { id: string; x: number; y: number; w: number; h: number; label: string; desc: string; kind: string }
 export interface Link { from: { x: number; y: number }; to: { x: number; y: number }; label: string }
 export interface FlowLayout { boxes: Box[]; links: Link[]; width: number; height: number }
+/** A rectangle in flow coordinates (`zoom` = how it looked on screen). */
+export interface Frame { x: number; y: number; w: number; h: number; zoom: number }
+
+/**
+ * The part of the flow visible in the Flows tab right now, read from Vue Flow's
+ * pane size and viewport transform. null when the tab is closed or hidden.
+ */
+export function visibleFlowFrame(): Frame | null {
+  const pane = document.querySelector('.flow-view .vue-flow') as HTMLElement | null
+  const vp = document.querySelector('.flow-view .vue-flow__transformationpane') as HTMLElement | null
+  if (!pane || !vp) return null
+  const rect = pane.getBoundingClientRect()
+  if (rect.width < 20 || rect.height < 20) return null
+  const m = new DOMMatrix(getComputedStyle(vp).transform)
+  const zoom = m.a || 1
+  return { x: -m.e / zoom, y: -m.f / zoom, w: rect.width / zoom, h: rect.height / zoom, zoom }
+}
 
 const PAD = 40
 const DEFAULT_W = 200
 const HEAD_H = 30
 const DESC_H = 26
 
-/** Places every visible block relative to the top-left of the flow, plus each connection's endpoints. */
-export function flowLayout(nodes: any[], edges: any[]): FlowLayout {
+/**
+ * Places the blocks relative to the picture's top-left corner, plus each connection's endpoints.
+ * Without a frame: the whole flow with padding. With a frame: exactly that area, keeping only
+ * the blocks inside it and the connections that touch it.
+ */
+export function flowLayout(nodes: any[], edges: any[], frame?: Frame | null): FlowLayout {
   const visible = nodes.filter((n) => !n.hidden && n.position)
   if (!visible.length) return { boxes: [], links: [], width: 0, height: 0 }
-  const raw = visible.map((n) => {
+  const all = visible.map((n) => {
     const desc = String(n.data?.desc ?? '').trim()
     const w = n.dimensions?.width || n.width || DEFAULT_W
     const h = n.dimensions?.height || n.height || HEAD_H + (desc ? DESC_H : 0)
     return { id: String(n.id), x: n.position.x, y: n.position.y, w, h, label: String(n.data?.label ?? n.id), desc, kind: String(n.data?.kind ?? 'function') }
   })
-  const minX = Math.min(...raw.map((b) => b.x))
-  const minY = Math.min(...raw.map((b) => b.y))
-  const boxes = raw.map((b) => ({ ...b, x: b.x - minX + PAD, y: b.y - minY + PAD }))
-  const byId = new Map(boxes.map((b) => [b.id, b]))
+  const ox = frame ? frame.x : Math.min(...all.map((b) => b.x)) - PAD
+  const oy = frame ? frame.y : Math.min(...all.map((b) => b.y)) - PAD
+  const inFrame = (b: Box) => !frame || (b.x < frame.x + frame.w && b.x + b.w > frame.x && b.y < frame.y + frame.h && b.y + b.h > frame.y)
+  const placed = all.map((b) => ({ ...b, show: inFrame(b), x: b.x - ox, y: b.y - oy }))
+  const byId = new Map(placed.map((b) => [b.id, b]))
   const links: Link[] = []
   for (const e of edges) {
     const s = byId.get(String(e.source))
     const t = byId.get(String(e.target))
-    if (!s || !t || e.hidden) continue
+    if (!s || !t || e.hidden || !(s.show || t.show)) continue
     // condition blocks have two outputs: "yes" at 30 % of the height, "no" at 75 %
     const k = e.sourceHandle === 'yes' ? 0.3 : e.sourceHandle === 'no' ? 0.75 : 0.5
     links.push({ from: { x: s.x + s.w, y: s.y + s.h * k }, to: { x: t.x, y: t.y + t.h / 2 }, label: typeof e.label === 'string' ? e.label : '' })
   }
+  const boxes: Box[] = placed.filter((b) => b.show).map(({ show: _show, ...b }) => b)
+  if (frame) return { boxes, links, width: frame.w, height: frame.h }
   const width = Math.max(...boxes.map((b) => b.x + b.w)) + PAD
   const height = Math.max(...boxes.map((b) => b.y + b.h)) + PAD
   return { boxes, links, width, height }
@@ -62,12 +90,14 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 /** Paints the flow on a dark canvas (same look as the Flows tab) and returns it as PNG. */
-export async function renderFlowPng(nodes: any[], edges: any[], title: string): Promise<Blob> {
-  const L = flowLayout(nodes, edges)
+export async function renderFlowPng(nodes: any[], edges: any[], title: string, frame?: Frame | null): Promise<Blob> {
+  const L = flowLayout(nodes, edges, frame)
   if (!L.boxes.length) throw new Error('empty-flow')
   const TITLE_H = 34
-  // 2× for sharp text on small flows; big project maps are capped so the canvas stays reasonable
-  const scale = Math.max(0.5, Math.min(2, 4000 / Math.max(L.width, L.height + TITLE_H)))
+  // A frame keeps its on-screen zoom (×2 for sharp text); the whole flow is drawn at 2×.
+  // Either way the canvas stays under 4000 px; compressForChat() then brings it to ≤ 1600 px.
+  const want = frame ? frame.zoom * 2 : 2
+  const scale = Math.max(0.3, Math.min(want, 4000 / Math.max(L.width, L.height + TITLE_H)))
   const canvas = document.createElement('canvas')
   canvas.width = Math.ceil(L.width * scale)
   canvas.height = Math.ceil((L.height + TITLE_H) * scale)
@@ -86,6 +116,9 @@ export async function renderFlowPng(nodes: any[], edges: any[], title: string): 
   ctx.fillText(ellipsis(ctx, '🔀 ' + title, L.width - 2 * PAD), PAD, TITLE_H / 2 + 6)
 
   ctx.translate(0, TITLE_H)
+  ctx.beginPath() // connections coming from outside the frame must not paint over the title
+  ctx.rect(0, 0, L.width, L.height)
+  ctx.clip()
   ctx.lineWidth = 1.6
   ctx.strokeStyle = '#7d8590'
   ctx.fillStyle = '#7d8590'
