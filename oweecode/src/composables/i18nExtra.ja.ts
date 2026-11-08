@@ -605,4 +605,5 @@ export const extraJa: Partial<Record<ExtraKey, string>> = {
   owNeedSdlc: "このトークンはチャットのみ許可されています。タスクを見るには Oweeme → チームチャット → OweeCode 用トークン で新しいトークンを作成し、«トークンを変更» を押して貼り付けてください。",
   owChangeToken: "トークンを変更",
   owRestartNeeded: "添付が届きませんでした: アプリのコアが古いバージョンです。OweeCode を閉じて（ターミナルで Ctrl+C）、«npm run tauri dev» をもう一度実行してください。",
+  owProjectMap: "プロジェクトマップ",
 }

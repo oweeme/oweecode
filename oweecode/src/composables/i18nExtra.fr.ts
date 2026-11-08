@@ -603,4 +603,5 @@ export const extraFr: Partial<Record<ExtraKey, string>> = {
   owNeedSdlc: "Ton jeton ne permet que le chat. Pour voir les tâches : crée un nouveau jeton dans Oweeme → Chat d’équipe → Jetons pour OweeCode, clique sur «Changer de jeton» et colle-le.",
   owChangeToken: "Changer de jeton",
   owRestartNeeded: "La pièce jointe n’est pas arrivée : le cœur de l’app est d’une version antérieure. Ferme OweeCode (Ctrl+C dans le terminal) et relance «npm run tauri dev».",
+  owProjectMap: "Carte du projet",
 }

@@ -605,4 +605,5 @@ export const extraKo: Partial<Record<ExtraKey, string>> = {
   owNeedSdlc: "토큰에 채팅 권한만 있습니다. 작업을 보려면 Oweeme → 팀 채팅 → OweeCode용 토큰에서 새 토큰을 만들고 «토큰 변경»을 눌러 붙여넣으세요.",
   owChangeToken: "토큰 변경",
   owRestartNeeded: "첨부 파일이 전송되지 않았습니다: 앱 코어가 이전 버전입니다. OweeCode를 닫고(터미널에서 Ctrl+C) «npm run tauri dev»를 다시 실행하세요.",
+  owProjectMap: "프로젝트 맵",
 }

@@ -605,4 +605,5 @@ export const extraZh: Partial<Record<ExtraKey, string>> = {
   owNeedSdlc: "你的令牌只允许聊天。要查看任务：在 Oweeme → 团队聊天 → OweeCode 令牌 中创建新令牌，点击 «更换令牌» 并粘贴。",
   owChangeToken: "更换令牌",
   owRestartNeeded: "附件没有送达：应用核心是旧版本。关闭 OweeCode（在终端按 Ctrl+C），然后重新运行 «npm run tauri dev»。",
+  owProjectMap: "项目地图",
 }

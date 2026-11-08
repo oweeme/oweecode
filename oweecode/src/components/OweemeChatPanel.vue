@@ -16,6 +16,8 @@ import { OWEEME_SERVERS, useOweemeChat, type OweemeAttachment } from '../composa
 import { taskKeyFromText, useOweemeTasks } from '../composables/useOweemeTasks'
 import { useOweemeShare, type PreviewShare } from '../composables/useOweemeShare'
 import { compressForChat } from '../composables/imageCompress'
+import { renderFlowPng } from '../composables/flowSnapshot'
+import { flowState } from '../composables/useFlowState'
 
 const store = useEditorStore()
 const { t } = useI18n()
@@ -97,6 +99,18 @@ async function attachImage(file: Blob | null | undefined, name = 'captura') {
     compressing.value = false
   }
 }
+/** The Flows tab is sent as a picture of the whole flow (like a screenshot), compressed below 300 KB. */
+async function attachFlowSnapshot() {
+  if (!flowState.nodes.some((n: any) => !n.hidden)) { flash(t('owNoFlow')); return }
+  const title = flowState.mode === 'map' ? t('owProjectMap') : flowState.flowName
+  try {
+    const png = await renderFlowPng(flowState.nodes, flowState.edges, title)
+    await attachImage(png, `🔀 ${title}`)
+    if (attach.value?.kind === 'image' && text.value === t('owDefaultImage')) text.value = t('owDefaultFlow')
+  } catch {
+    flash(t('owImageTooLarge'))
+  }
+}
 function onPaste(e: ClipboardEvent) {
   const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))
   if (!item) return
@@ -111,7 +125,8 @@ function onDrop(e: DragEvent) {
 async function pick(kind: OweemeAttachment['kind']) {
   showShareMenu.value = false
   if (kind === 'image') { imageInput.value?.click(); return }
-  const a = kind === 'code' ? share.selection() : kind === 'file' ? share.currentFile() : kind === 'flow' ? share.flow() : await share.preview()
+  if (kind === 'flow') { await attachFlowSnapshot(); return }
+  const a = kind === 'code' ? share.selection() : kind === 'file' ? share.currentFile() : await share.preview()
   if (!a) { flash(t(({ code: 'owNoSelection', file: 'owNoFile', flow: 'owNoFlow', preview: 'owNoPreview' } as const)[kind])); return }
   attach.value = a
   if (!text.value.trim()) text.value = t(({ code: 'owDefaultCode', file: 'owDefaultFile', flow: 'owDefaultFlow', preview: 'owDefaultPreview' } as const)[kind])

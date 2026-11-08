@@ -1,7 +1,7 @@
 // What can be shared in the Oweeme chat, and how a received attachment is opened:
 //   code     the selection in the editor           → copy / open the file at that line
 //   file     the whole active file                 → open it if it exists in your project, or copy
-//   flow     the Flows tab (nodes + edges)         → import into your Flows tab
+//   flow     sent as an image now (flowSnapshot.ts); old flow messages can still be imported
 //   preview  the address shown in Browser preview  → open in your preview (LAN address for teammates)
 import { invoke } from '@tauri-apps/api/core'
 import { flowState } from './useFlowState'
@@ -43,11 +43,6 @@ export function useOweemeShare() {
     return { kind: 'file', name: relPath(tab.path), content: tab.content }
   }
 
-  function flow(): OweemeAttachment | null {
-    if (!flowState.nodes.length) return null
-    return { kind: 'flow', name: flowState.flowName, content: JSON.stringify({ name: flowState.flowName, nodes: flowState.nodes, edges: flowState.edges }) }
-  }
-
   async function preview(): Promise<OweemeAttachment | null> {
     const tab = store.state.tabs.find((t) => t.type === 'browser' && t.browserUrl)
     if (!tab?.browserUrl) return null
@@ -80,5 +75,5 @@ export function useOweemeShare() {
     store.openBrowserTab(p.lanUrl ?? p.url)
   }
 
-  return { selection, currentFile, flow, preview, openInProject, importFlow, openPreview }
+  return { selection, currentFile, preview, openInProject, importFlow, openPreview }
 }

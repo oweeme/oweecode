@@ -605,4 +605,5 @@ export const extraRu: Partial<Record<ExtraKey, string>> = {
   owNeedSdlc: "Твой токен разрешает только чат. Чтобы видеть задачи: создай новый токен в Oweeme → Командный чат → Токены для OweeCode, нажми «Сменить токен» и вставь его.",
   owChangeToken: "Сменить токен",
   owRestartNeeded: "Вложение не дошло: ядро приложения старой версии. Закрой OweeCode (Ctrl+C в терминале) и снова запусти «npm run tauri dev».",
+  owProjectMap: "Карта проекта",
 }

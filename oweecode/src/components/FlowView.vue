@@ -27,6 +27,7 @@ import { evalCondition, fill, fillSql, isReadQuery, mergeOutput, RUN_LANGS, type
 import { useDatabaseStore, type DbConnection } from '../composables/useDatabaseStore'
 import { useI18n, type ExtraKey } from '../composables/useI18n'
 import { extraEn } from '../composables/i18nExtra'
+import { FLOW_KINDS, MAP_KINDS, kindInfo, type BlockKind } from '../composables/flowKinds'
 
 const store = useEditorStore()
 const { t } = useI18n()
@@ -34,35 +35,9 @@ const { connections: dbConns } = useDatabaseStore()
 const { addEdges, fitView, setCenter, getViewport, setViewport } = useVueFlow()
 const { nodeResults, resultTab, mode, nodes, edges, flowName, selectedId, framework, mapNotice, showAi, aiText, dialect, seedRows, codeLang, runInput, runLog, nodeStatus, running, showLog } = toRefs(flowState)
 
-interface BlockKind { key: string; label: string; icon: string; color: string }
-const FLOW_KINDS: BlockKind[] = [
-  { key: 'trigger',   label: 'Inicio / Evento', icon: '⚡', color: '#e5a50a' },
-  { key: 'function',  label: 'Función / Script', icon: 'ƒ', color: '#3b82f6' },
-  { key: 'http',      label: 'API / HTTP',      icon: '🌐', color: '#8b5cf6' },
-  { key: 'db',        label: 'Base de datos',   icon: '🗄', color: '#14b8a6' },
-  { key: 'condition', label: 'Condición',       icon: '⑂',  color: '#f97316' },
-  { key: 'email',     label: 'Notificación',    icon: '✉',  color: '#ec4899' },
-  { key: 'note',      label: 'Nota',            icon: '✎',  color: '#94a3b8' },
-  { key: 'end',       label: 'Fin',             icon: '■',  color: '#ef4444' },
-]
-const MAP_KINDS: BlockKind[] = [
-  { key: 'router',     label: 'Rutas',          icon: '⇢', color: '#e5a50a' },
-  { key: 'controller', label: 'Controladores',  icon: '⚙', color: '#f59e0b' },
-  { key: 'layout',     label: 'Layouts',        icon: '▤', color: '#94a3b8' },
-  { key: 'page',       label: 'Páginas / HTML', icon: '▣', color: '#3b82f6' },
-  { key: 'component',  label: 'Componentes',    icon: '◧', color: '#14b8a6' },
-  { key: 'store',      label: 'Stores',         icon: '◉', color: '#8b5cf6' },
-  { key: 'service',    label: 'Servicios/API',  icon: '🌐', color: '#ec4899' },
-  { key: 'model',      label: 'Modelos / BD',   icon: '🗄', color: '#06b6d4' },
-  { key: 'logic',      label: 'Lógica/utils',   icon: 'ƒ', color: '#f97316' },
-  { key: 'asset',      label: 'Estilos',        icon: '◌', color: '#a3e635' },
-  { key: 'module',     label: 'Otros',          icon: '·', color: '#64748b' },
-]
-const ALL_KINDS = [...FLOW_KINDS, ...MAP_KINDS]
 // block names end up as table / function names in the generated SQL and code: they stay English ASCII in every language
 const EN_KIND = Object.fromEntries(Object.entries(extraEn).filter(([k]) => k.startsWith('wk_')).map(([k, v]) => [k.slice(3), v])) as Record<string, string>
 const kl = (k: BlockKind) => t('wk_' + k.key as ExtraKey)
-const kindInfo = (k: string) => ALL_KINDS.find(x => x.key === k) ?? FLOW_KINDS[1]
 const RUNNABLE = ['function', 'db', 'email', 'trigger']   // kinds that can be bound to a command
 let counter = 0
 
