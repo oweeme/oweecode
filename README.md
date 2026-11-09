@@ -26,14 +26,15 @@ A diferencia de editores pesados que consumen gigabytes de RAM, OweeCode es **li
 
 ---
 
-## Novedades de la 1.5.0
+## Novedades de la 1.6.0
 
-- 🌐 **Navegador con proyectos:** detecta servidores en cualquier puerto, arranca los de tu proyecto, vista dividida, recarga en vivo y favoritos.
-- 📡 **FTP como FileZilla:** teclado, cola de transferencias, confirmación al sobrescribir y **sincronización de carpetas**; SFTP/FTPS verificados.
-- 🔀 **Flujos de negocio** ejecutables con scripts en cualquier lenguaje, con datos de ejemplo y código base.
-- 🎨 **Diseño visual** de Quasar/Vue/HTML y de **interfaces nativas Qt · QML · GTK**.
-- 📱 Diagnóstico para Capacitor, Android, Flutter, Qt, GTK y Godot.
-- 🌍 Interfaz en 8 idiomas y pantalla de carga con el logo.
+- 💬 **Chat de equipo de Oweeme dentro del editor:** salas por proyecto o repositorio, con la sala de tu repositorio abierta sola.
+- 📎 **Comparte sin salir del IDE:** código seleccionado, el archivo completo, tu vista previa (con la dirección de tu red local) y **tu flujo como imagen** de lo que ves en pantalla.
+- 🖼 **Capturas al chat:** pega con Ctrl+V lo que capturas con OweeCapture; se comprime sola a menos de 300 KB y en PNG cuando cabe, para que el texto se lea nítido.
+- ✅ **Tareas del proyecto:** ver, comentar y mover las tareas del tablero de Oweeme; tu rama (`bella-7-…`) indica la tarea y tras un commit puedes pasarla a Revisión.
+- 🔗 Los enlaces del chat se abren en tu navegador.
+
+Antes, en la 1.5: navegador con proyectos, FTP como FileZilla, flujos de negocio ejecutables, diseño visual de Quasar/Vue/HTML y de interfaces nativas, y 8 idiomas.
 
 Detalle completo en el [CHANGELOG](CHANGELOG.md).
 
@@ -139,9 +140,10 @@ Un agente con acceso real al proyecto, corriendo 100% en tu máquina — pensado
 
 ### 💬 Chat de equipo de Oweeme
 - Panel **Oweeme** en la barra lateral: salas de tu equipo en [oweeme.com](https://oweeme.com) sin salir del editor
-- Conexión con un token personal `owc_`, guardado en el llavero del sistema (solo tiene permiso para el chat)
+- Conexión con un token personal `owc_` (se crea en oweeme.com → Chat de equipo → Tokens para OweeCode), guardado en el llavero del sistema; las peticiones salen desde Rust
 - Abre sola la sala vinculada al repositorio Git del proyecto
-- **Compartir:** código seleccionado, archivo completo, tus flujos y tu vista previa; lo recibido se abre o importa con un clic
+- **Compartir:** código seleccionado, archivo completo, vista previa del navegador y tu flujo o mapa del proyecto **como imagen** del marco que ves; lo recibido se abre con un clic
+- **Capturas:** Ctrl+V, arrastrar o elegir; se comprimen a menos de 300 KB. Oweeme guarda las imágenes del chat 30 días
 - **Tareas del proyecto:** ver, comentar y mover tareas del tablero de Oweeme; la rama (`bella-7-…`) indica en qué tarea trabajas y los commits se enlazan a ella
 
 ### ⚡ Cliente API REST

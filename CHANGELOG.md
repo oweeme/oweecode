@@ -1,6 +1,6 @@
 # Changelog
 
-## Sin publicar (rama `oweeme-chat`, próxima 1.6.0)
+## 1.6.0 — 2026-11-08
 
 ### Novedades
 - **Chat de equipo de Oweeme dentro del editor:** nuevo panel **Oweeme** en la barra lateral. Te conectas con un token personal `owc_` (se crea en oweeme.com → Chat de equipo → Tokens) que se guarda en el llavero del sistema y nunca pasa por la interfaz web; las peticiones salen desde Rust.
@@ -13,6 +13,11 @@
 - Si tu token es antiguo (solo chat), el panel explica cómo crear uno nuevo con permiso de tareas y ofrece «Cambiar token».
 - **Tareas y Git:** la rama `bella-7-paypal` muestra «Trabajando en BELLA-7»; tras un commit que menciona la tarea, OweeCode ofrece comentarlo en ella y pasarla a Revisión.
 - Los enlaces de los mensajes, comentarios y vistas previas compartidas se abren en el navegador del sistema.
+- Las imágenes del chat se ven más nítidas: PNG cuando cabe en 300 KB y los flujos se dibujan directamente a 2400 px.
+- Oweeme guarda las imágenes del chat 30 días; después el mensaje muestra «Imagen caducada».
+
+### Correcciones
+- Las imágenes, capturas y archivos compartidos no llegaban al chat (solo el texto): el comando de envío no recibía el adjunto.
 
 ## 1.5.1
 

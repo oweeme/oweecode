@@ -4,115 +4,289 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OweeCode — el IDE ligero hecho con Rust</title>
-<meta name="description" content="OweeCode: editor, terminal, base de datos, FTP, navegador, diseño visual y flujos de negocio en un solo IDE ligero. Linux, Windows y macOS.">
+<meta name="description" content="OweeCode: editor, terminal, bases de datos, FTP, navegador, diseño visual, flujos de negocio y el chat de equipo de Oweeme en un solo IDE ligero. Linux, Windows y macOS.">
+<meta property="og:title" content="OweeCode — el IDE ligero hecho con Rust">
+<meta property="og:description" content="Editor, terminal, bases de datos, FTP, flujos y chat de equipo en un solo IDE. Linux, Windows y macOS.">
+<meta property="og:image" content="https://oweeme.github.io/oweecode/img/oweecode-flujos-oweeme.webp">
 <link rel="icon" href="oweedev.png">
+<link rel="preload" href="fonts/Inter-Bold.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-  :root { --bg:#0f1114; --card:#171a1f; --line:#262b33; --fg:#e6e9ee; --muted:#9aa4b2; --accent:#2ea88a; --accent2:#5b8def; }
-  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg:#f6f8fa; --card:#fff; --line:#d8dee4; --fg:#1f2328; --muted:#59636e; --accent:#1a7f64; --accent2:#2f6feb; } }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
-  a { color:var(--accent2); text-decoration:none; } a:hover { text-decoration:underline; }
-  .wrap { max-width:1040px; margin:0 auto; padding:0 20px; }
-  nav { display:flex; align-items:center; gap:18px; padding:16px 0; }
-  nav .brand { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--fg); } nav .brand img { width:30px; height:30px; border-radius:8px; }
-  nav .sp { flex:1; } nav a.link { color:var(--muted); font-size:14px; }
-  .lang { display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
-  .lang button { background:none; border:0; color:var(--muted); padding:5px 10px; font:inherit; font-size:13px; cursor:pointer; } .lang button.on { background:var(--card); color:var(--fg); }
-  .hero { text-align:center; padding:56px 0 40px; }
-  .hero img.logo { width:112px; height:112px; border-radius:26px; box-shadow:0 12px 40px #2ea88a33; }
-  h1 { font-size:clamp(34px,6vw,56px); line-height:1.1; margin:22px 0 12px; letter-spacing:-.02em; }
-  .hero p.sub { max-width:640px; margin:0 auto 26px; color:var(--muted); font-size:18px; }
-  .cta { display:inline-flex; gap:12px; flex-wrap:wrap; justify-content:center; }
-  .btn { display:inline-block; padding:12px 22px; border-radius:10px; font-weight:600; border:1px solid var(--line); color:var(--fg); background:var(--card); }
-  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; } .btn:hover { text-decoration:none; filter:brightness(1.08); }
-  .meta { margin-top:14px; color:var(--muted); font-size:13px; }
-  section { padding:44px 0; border-top:1px solid var(--line); }
-  h2 { font-size:28px; margin:0 0 6px; letter-spacing:-.01em; } .lead { color:var(--muted); margin:0 0 26px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; } .card h3 { margin:0 0 6px; font-size:17px; } .card p { margin:0; color:var(--muted); font-size:15px; }
-  .card .ic { font-size:24px; margin-bottom:8px; display:block; }
-  .dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
-  .dl .card b { display:block; margin-bottom:4px; } code { background:var(--bg); border:1px solid var(--line); padding:2px 7px; border-radius:6px; font-size:13px; }
-  pre { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px 14px; overflow:auto; font-size:13px; margin:10px 0 0; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; } .chips span { border:1px solid var(--line); background:var(--card); border-radius:999px; padding:4px 12px; font-size:14px; color:var(--muted); }
-  footer { border-top:1px solid var(--line); padding:26px 0 40px; color:var(--muted); font-size:14px; text-align:center; }
-  [data-l] { display:none; } html[data-lang="es"] [data-l="es"], html[data-lang="en"] [data-l="en"] { display:revert; }
-  html[data-lang="es"] span[data-l="es"], html[data-lang="en"] span[data-l="en"] { display:inline; }
+/*
+ * OweeCode site — visual language of OweeKoi (github.com/oweeme/oweekoi), same tokens as oweeme.com:
+ *   "papel" = light theme (OweeKoiLight), "tinta" = dark theme (OweeKoiDark)
+ *   ventana = window with a 31px title bar · double ring on cards · koi pond in the hero
+ * Theme: <html data-theme="light|dark">; without it the OS preference wins.
+ */
+@font-face { font-family: 'Inter'; font-weight: 400; font-display: swap; src: url(fonts/Inter-Regular.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 600; font-display: swap; src: url(fonts/Inter-SemiBold.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 700; font-display: swap; src: url(fonts/Inter-Bold.woff2) format('woff2'); }
+
+:root {
+  color-scheme: light;
+  --base: #f2eee2; --vista: #faf7ee; --superficie: #ebe6d6; --elevado: #fffdf7; --borde: #d6cfbb;
+  --texto: #252223; --suave: #5f5a55;
+  --acento: #488c54; --sel: #9cd5a3; --sobre-sel: #0f1d0b; --marca: #217a68; --coral: #c9412c; --enlace: #1d62a0;
+  --agua: url(img/agua-claro.jpg); --onda: rgba(255, 255, 255, .55);
+  --radio: 12px; --radio-sm: 8px;
+  --sombra: 0 1px 2px rgb(0 0 0 / .04), 0 8px 24px -12px rgb(60 50 20 / .18);
+  --sombra-alta: 0 24px 60px -24px rgb(40 30 10 / .35);
+  --font: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --base: #2d2a2c; --vista: #262325; --superficie: #353234; --elevado: #3d3a3c; --borde: #55514f;
+    --texto: #ece6d6; --suave: #b8b0a1;
+    --acento: #93cf9b; --sel: #8cc093; --marca: #5fb9a4; --coral: #f58a76; --enlace: #7cb9f0;
+    --agua: url(img/agua-oscuro.jpg); --onda: rgba(236, 230, 214, .32);
+    --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px -12px rgb(0 0 0 / .6);
+    --sombra-alta: 0 24px 60px -24px rgb(0 0 0 / .8);
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --base: #2d2a2c; --vista: #262325; --superficie: #353234; --elevado: #3d3a3c; --borde: #55514f;
+  --texto: #ece6d6; --suave: #b8b0a1;
+  --acento: #93cf9b; --sel: #8cc093; --marca: #5fb9a4; --coral: #f58a76; --enlace: #7cb9f0;
+  --agua: url(img/agua-oscuro.jpg); --onda: rgba(236, 230, 214, .32);
+  --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px -12px rgb(0 0 0 / .6);
+  --sombra-alta: 0 24px 60px -24px rgb(0 0 0 / .8);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--base); color: var(--texto); font: 16px/1.6 var(--font); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: var(--enlace); text-decoration: none; } a:hover { text-decoration: underline; }
+img { max-width: 100%; display: block; }
+code, pre { font-family: var(--mono); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+
+/* ---------- header ---------- */
+header.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--base) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--borde); }
+nav { display: flex; align-items: center; gap: 18px; height: 58px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--texto); font-size: 1.1rem; }
+.brand:hover { text-decoration: none; }
+.brand img { width: 32px; height: 32px; border-radius: 9px; }
+nav .sp { flex: 1; }
+nav a.link { color: var(--suave); font-size: .95rem; }
+nav a.link:hover { color: var(--texto); text-decoration: none; }
+.tool { display: inline-grid; place-items: center; background: none; border: 0; color: var(--texto); font: 600 .85rem var(--font); padding: 6px 8px; border-radius: var(--radio-sm); cursor: pointer; }
+.tool:hover { background: var(--superficie); }
+@media (max-width: 720px) { nav a.link { display: none; } nav { gap: 6px; } }
+
+/* ---------- OweeKoi kit ---------- */
+.card, .ventana { position: relative; background: var(--vista); border: 1px solid var(--borde); border-radius: var(--radio); }
+.card::after, .ventana::after { content: ''; position: absolute; inset: 3px; pointer-events: none; border: 1px solid color-mix(in srgb, var(--borde) 45%, transparent); border-radius: calc(var(--radio) - 3px); }
+.card { padding: 20px 22px; }
+.card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.card p { margin: 0; color: var(--suave); font-size: .95rem; }
+.card .ic { font-size: 1.5rem; margin-bottom: 8px; display: block; }
+.barra { display: flex; align-items: center; justify-content: center; height: 31px; padding: 0 12px; background: var(--superficie); border-bottom: 1px solid var(--borde); border-radius: calc(var(--radio) - 1px) calc(var(--radio) - 1px) 0 0; font-size: .8rem; color: var(--suave); font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ventana .cuerpo { padding: 28px 24px; }
+.ventana { box-shadow: var(--sombra-alta); }
+
+.btn { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: var(--radio-sm); font: 600 1rem var(--font); border: 1px solid var(--borde); color: var(--texto); background: var(--elevado); transition: transform .2s, box-shadow .2s; }
+.btn:hover { text-decoration: none; transform: translateY(-1px); box-shadow: var(--sombra); }
+.btn::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; border: 2px solid var(--sel); opacity: 0; pointer-events: none; }
+.btn:hover::before { animation: halo .7s ease-out; }
+@keyframes halo { from { opacity: .9; transform: scale(1); } to { opacity: 0; transform: scale(1.18, 1.45); } }
+.btn.main { background: var(--sel); border-color: var(--sel); color: var(--sobre-sel); }
+.chip { display: inline-block; border: 1px solid var(--borde); background: var(--superficie); border-radius: 999px; padding: 3px 12px; font-size: .85rem; color: var(--suave); }
+.chip.nuevo { background: var(--sel); border-color: var(--sel); color: var(--sobre-sel); font-weight: 600; }
+
+/* ---------- koi pond ---------- */
+.estanque { --H: clamp(600px, 70vw, 700px); position: relative; overflow: hidden; min-height: var(--H); background: var(--agua) center / cover no-repeat; display: grid; place-items: center; padding: 56px 16px 90px; }
+.estanque::after { content: ''; position: absolute; inset: auto 0 0 0; height: 120px; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--base)); }
+.estanque-contenido { position: relative; z-index: 2; width: 100%; display: grid; place-items: center; }
+.anillo { position: absolute; width: 190px; height: 190px; border-radius: 50%; border: 1px solid var(--onda); opacity: 0; animation: onda 9s ease-out infinite; pointer-events: none; }
+.anillo::after { content: ''; position: absolute; inset: 22px; border-radius: 50%; border: 1px solid var(--onda); }
+.anillo:nth-of-type(1) { left: 6%; top: 10%; }
+.anillo:nth-of-type(2) { right: 8%; top: 24%; animation-delay: 3s; width: 230px; height: 230px; }
+.anillo:nth-of-type(3) { left: 28%; bottom: 8%; animation-delay: 6s; width: 160px; height: 160px; }
+@keyframes onda { 0% { transform: scale(.35); opacity: 0; } 15% { opacity: 1; } 100% { transform: scale(1.25); opacity: 0; } }
+.giro { position: absolute; width: 0; height: 0; left: calc(var(--cx) * 100%); top: calc(var(--cy) * 100%); animation: girar var(--periodo) linear infinite; }
+@keyframes girar { from { transform: rotate(calc(var(--fase) * 1deg)); } to { transform: rotate(calc(var(--fase) * 1deg + var(--sentido) * 360deg)); } }
+.orb { position: absolute; left: calc(var(--H) * var(--orbita)); top: 0; transform: rotate(calc(var(--sentido) * -90deg)); }
+.koi { position: absolute; width: var(--w); aspect-ratio: 876 / 550; background-size: 400% 400%; background-repeat: no-repeat; transform: translate(-47.83%, -50.55%); animation: nadar 1.28s steps(1, end) infinite; }
+.k1 { --w: clamp(130px, 20vw, 230px); background-image: url(img/koi-kohaku.webp); }
+.k2 { --w: clamp(110px, 16vw, 190px); background-image: url(img/koi-ogon.webp); }
+@keyframes nadar {
+  0% { background-position: 0% 0%; } 6.25% { background-position: 33.333% 0%; } 12.5% { background-position: 66.667% 0%; } 18.75% { background-position: 100% 0%; }
+  25% { background-position: 0% 33.333%; } 31.25% { background-position: 33.333% 33.333%; } 37.5% { background-position: 66.667% 33.333%; } 43.75% { background-position: 100% 33.333%; }
+  50% { background-position: 0% 66.667%; } 56.25% { background-position: 33.333% 66.667%; } 62.5% { background-position: 66.667% 66.667%; } 68.75% { background-position: 100% 66.667%; }
+  75% { background-position: 0% 100%; } 81.25% { background-position: 33.333% 100%; } 87.5% { background-position: 66.667% 100%; } 93.75% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+@media (prefers-reduced-motion: reduce) { .giro, .koi, .anillo, .btn:hover::before { animation: none; } .anillo { opacity: .8; transform: scale(.8); } }
+@media (max-width: 640px) { .estanque { --H: 560px; padding: 32px 16px 80px; } }
+
+.hero { width: min(760px, 100%); text-align: center; }
+.hero .logo { width: 104px; height: 104px; border-radius: 26px; margin: 0 auto 10px; box-shadow: var(--sombra); }
+.hero h1 { font-size: clamp(2.3rem, 6vw, 3.6rem); line-height: 1.05; letter-spacing: -.03em; margin: 14px 0 12px; }
+.hero p.sub { max-width: 600px; margin: 0 auto 26px; color: var(--suave); font-size: 1.1rem; }
+.cta { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.meta { margin-top: 18px; color: var(--suave); font-size: .85rem; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+@media (max-width: 640px) { .ventana .cuerpo { padding: 22px 16px; } .hero p.sub { font-size: 1rem; } }
+
+/* ---------- sections ---------- */
+section { padding: 64px 0; }
+.tag { display: block; color: var(--acento); font: 600 .78rem var(--mono); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 10px; }
+.lead { color: var(--suave); margin: 0 0 30px; max-width: 680px; font-size: 1.05rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 16px; }
+.grid .card { transition: transform .25s, box-shadow .25s, border-color .25s; }
+.grid .card:hover { transform: translateY(-3px); box-shadow: var(--sombra); border-color: color-mix(in srgb, var(--acento) 55%, var(--borde)); }
+.shot { margin-top: -40px; position: relative; z-index: 3; }
+.shot .ventana { overflow: hidden; }
+.shot img { width: 100%; height: auto; }
+.dos { display: grid; grid-template-columns: 1.05fr 1fr; gap: 28px; align-items: center; }
+@media (max-width: 860px) { .dos { grid-template-columns: 1fr; } }
+.lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.lista li { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; }
+.lista .n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--sel); color: var(--sobre-sel); font-weight: 700; font-size: .9rem; }
+.lista b { font-weight: 700; }
+html[data-lang='es'] .lista b[data-l='es'], html[data-lang='en'] .lista b[data-l='en'] { display: block; } /* titles on their own line, only in the active language */
+.lista span.d { color: var(--suave); font-size: .95rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+pre { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-sm); padding: 10px 12px; overflow: auto; font-size: .82rem; margin: 10px 0 0; }
+.dl .card b { display: block; font-size: 1.05rem; margin-bottom: 2px; }
+footer { border-top: 1px solid var(--borde); padding: 28px 0 44px; color: var(--suave); font-size: .9rem; text-align: center; }
+
+/* ES / EN */
+[data-l] { display: none; }
+html[data-lang='es'] [data-l='es'], html[data-lang='en'] [data-l='en'] { display: revert; }
+html[data-lang='es'] span[data-l='es'], html[data-lang='en'] span[data-l='en'] { display: inline; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <nav>
-    <a class="brand" href="#"><img src="oweedev.png" alt=""> OweeCode</a>
-    <span class="sp"></span>
-    <a class="link" href="#features"><span data-l="es">Características</span><span data-l="en">Features</span></a>
-    <a class="link" href="#download"><span data-l="es">Descargar</span><span data-l="en">Download</span></a>
-    <a class="link" href="https://github.com/oweeme/oweecode">GitHub</a>
-    <div class="lang" role="group" aria-label="Language"><button data-set="es">ES</button><button data-set="en">EN</button></div>
-  </nav>
+<header class="top">
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#"><img src="oweedev.png" alt=""> OweeCode</a>
+      <span class="sp"></span>
+      <a class="link" href="#novedades"><span data-l="es">Novedades</span><span data-l="en">What's new</span></a>
+      <a class="link" href="#features"><span data-l="es">Características</span><span data-l="en">Features</span></a>
+      <a class="link" href="#download"><span data-l="es">Descargar</span><span data-l="en">Download</span></a>
+      <a class="link" href="https://github.com/oweeme/oweecode">GitHub</a>
+      <button class="tool" id="lang" type="button" aria-label="Language">EN</button>
+      <button class="tool" id="theme" type="button" aria-label="Theme"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </nav>
+  </div>
+</header>
 
-  <header class="hero">
-    <img class="logo" src="oweedev.png" alt="OweeCode">
-    <h1>OweeCode</h1>
-    <p class="sub" data-l="es">El IDE ligero para quien quiere todo en un solo lugar: editor, terminal, bases de datos, FTP, navegador, diseño visual y flujos de negocio. Hecho con Rust.</p>
-    <p class="sub" data-l="en">The lightweight IDE for people who want everything in one place: editor, terminal, databases, FTP, browser, visual design and business flows. Built with Rust.</p>
-    <div class="cta">
-      <a class="btn primary" href="https://github.com/oweeme/oweecode/releases/latest"><span data-l="es">⬇ Descargar la última versión</span><span data-l="en">⬇ Download the latest version</span></a>
-      <a class="btn" href="https://github.com/oweeme/oweecode"><span data-l="es">Ver el código</span><span data-l="en">View the source</span></a>
+<div class="estanque">
+  <span class="anillo"></span><span class="anillo"></span><span class="anillo"></span>
+  <div class="giro" aria-hidden="true" style="--cx:.34;--cy:.5;--orbita:.6;--sentido:-1;--fase:20;--periodo:60s"><div class="orb"><div class="koi k1"></div></div></div>
+  <div class="giro" aria-hidden="true" style="--cx:.66;--cy:.52;--orbita:.55;--sentido:1;--fase:200;--periodo:74s"><div class="orb"><div class="koi k2"></div></div></div>
+  <div class="estanque-contenido">
+    <div class="ventana hero">
+      <div class="barra">oweecode — v1.6.0</div>
+      <div class="cuerpo">
+        <img class="logo" src="oweedev.png" alt="OweeCode">
+        <span class="chip nuevo"><span data-l="es">Nuevo: chat de equipo y tareas de Oweeme</span><span data-l="en">New: Oweeme team chat and tasks</span></span>
+        <h1>OweeCode</h1>
+        <p class="sub" data-l="es">El IDE ligero para tener todo en un solo lugar: editor, terminal, bases de datos, FTP, navegador, diseño visual, flujos de negocio y ahora el chat de tu equipo. Hecho con Rust.</p>
+        <p class="sub" data-l="en">The lightweight IDE that keeps everything in one place: editor, terminal, databases, FTP, browser, visual design, business flows and now your team chat. Built with Rust.</p>
+        <div class="cta">
+          <a class="btn main" href="https://github.com/oweeme/oweecode/releases/latest"><span data-l="es">⬇ Descargar gratis</span><span data-l="en">⬇ Free download</span></a>
+          <a class="btn" href="https://github.com/oweeme/oweecode"><span data-l="es">Ver el código</span><span data-l="en">View the source</span></a>
+        </div>
+        <div class="meta"><span>v1.6.0</span><span>Linux · Windows · macOS</span><span>MIT</span><span data-l="es">8 idiomas</span><span data-l="en">8 languages</span></div>
+      </div>
     </div>
-    <div class="meta">v1.5.1 · Linux · Windows · macOS · MIT</div>
-  </header>
+  </div>
+</div>
+
+<div class="wrap shot">
+  <div class="ventana">
+    <div class="barra"><span data-l="es">Flujos + chat de equipo de Oweeme</span><span data-l="en">Flows + Oweeme team chat</span></div>
+    <img src="img/oweecode-flujos-oweeme.webp" width="1600" height="878" loading="lazy" alt="OweeCode con un flujo de pago y el panel de chat de Oweeme">
+  </div>
+</div>
+
+<main class="wrap">
+  <section id="novedades">
+    <div class="dos">
+      <div>
+        <span class="tag"><span data-l="es">Novedades 1.6</span><span data-l="en">New in 1.6</span></span>
+        <h2><span data-l="es">Tu equipo, dentro del editor</span><span data-l="en">Your team, inside the editor</span></h2>
+        <p class="lead"><span data-l="es">OweeCode se conecta con <a href="https://oweeme.com">oweeme.com</a>: habla con tu equipo y tus clientes, comparte lo que ves y mueve las tareas sin cambiar de ventana.</span><span data-l="en">OweeCode connects to <a href="https://oweeme.com">oweeme.com</a>: talk to your team and clients, share what you see and move tasks without switching windows.</span></p>
+      </div>
+      <ul class="lista">
+        <li><span class="n">1</span><div><b data-l="es">Salas por repositorio</b><b data-l="en">Rooms per repository</b><span class="d" data-l="es">La sala de tu proyecto se abre sola según el remoto de Git. Tu token vive en el llavero del sistema.</span><span class="d" data-l="en">Your project's room opens by itself from the Git remote. Your token lives in the system keychain.</span></div></li>
+        <li><span class="n">2</span><div><b data-l="es">Comparte lo que estás viendo</b><b data-l="en">Share what you're looking at</b><span class="d" data-l="es">Código seleccionado, el archivo completo, tu vista previa con la dirección de tu red y tu flujo como imagen del marco que ves.</span><span class="d" data-l="en">Selected code, the whole file, your preview with your network address and your flow as a picture of the frame you see.</span></div></li>
+        <li><span class="n">3</span><div><b data-l="es">Capturas con Ctrl+V</b><b data-l="en">Screenshots with Ctrl+V</b><span class="d" data-l="es">Captura con OweeCapture y pégala: se comprime sola a menos de 300 KB y se lee nítida.</span><span class="d" data-l="en">Capture with OweeCapture and paste: it is compressed below 300 KB and stays sharp.</span></div></li>
+        <li><span class="n">4</span><div><b data-l="es">Tareas enlazadas a Git</b><b data-l="en">Tasks linked to Git</b><span class="d" data-l="es">Tu rama indica la tarea; tras el commit, OweeCode ofrece comentarla y pasarla a Revisión. El cliente lo ve en su propuesta.</span><span class="d" data-l="en">Your branch names the task; after a commit OweeCode offers to comment it and move it to Review. The client sees it in their proposal.</span></div></li>
+      </ul>
+    </div>
+  </section>
 
   <section id="features">
+    <span class="tag"><span data-l="es">Características</span><span data-l="en">Features</span></span>
     <h2><span data-l="es">Todo lo que necesitas</span><span data-l="en">Everything you need</span></h2>
     <p class="lead"><span data-l="es">Sin plugins extra y sin gigabytes de RAM.</span><span data-l="en">No extra plugins, no gigabytes of RAM.</span></p>
     <div class="grid">
-      <div class="card"><span class="ic">✏️</span><h3 data-l="es">Editor y terminal</h3><h3 data-l="en">Editor & terminal</h3><p data-l="es">Resaltado para decenas de lenguajes, autocompletado con LSP, búsqueda en el proyecto, Git y terminal integrados.</p><p data-l="en">Highlighting for dozens of languages, LSP completion, project search, built-in Git and terminal.</p></div>
+      <div class="card"><span class="ic">✏️</span><h3 data-l="es">Editor y terminal</h3><h3 data-l="en">Editor &amp; terminal</h3><p data-l="es">Resaltado para decenas de lenguajes, autocompletado con LSP, búsqueda en el proyecto, Git y terminal integrados.</p><p data-l="en">Highlighting for dozens of languages, LSP completion, project search, built-in Git and terminal.</p></div>
+      <div class="card"><span class="ic">💬</span><h3 data-l="es">Chat de equipo</h3><h3 data-l="en">Team chat</h3><p data-l="es">Las salas de Oweeme en la barra lateral, con código, capturas, flujos, vista previa y tareas del proyecto.</p><p data-l="en">Oweeme rooms in the sidebar, with code, screenshots, flows, preview and project tasks.</p></div>
       <div class="card"><span class="ic">🌐</span><h3 data-l="es">Navegador con proyectos</h3><h3 data-l="en">Project-aware browser</h3><p data-l="es">Detecta tus servidores (80, 3000, 9000…), arranca el de tu proyecto, vista dividida, recarga en vivo y favoritos.</p><p data-l="en">Finds your servers (80, 3000, 9000…), starts your project's, split view, live reload and bookmarks.</p></div>
-      <div class="card"><span class="ic">📡</span><h3 data-l="es">FTP / SFTP / FTPS</h3><h3 data-l="en">FTP / SFTP / FTPS</h3><p data-l="es">Como FileZilla: teclado, cola de transferencias, sincronización de carpetas y verificación de claves y certificados.</p><p data-l="en">FileZilla-style: keyboard, transfer queue, folder sync and key/certificate verification.</p></div>
       <div class="card"><span class="ic">🔀</span><h3 data-l="es">Flujos de negocio</h3><h3 data-l="en">Business flows</h3><p data-l="es">Diseña procesos con bloques, ejecútalos con scripts en cualquier lenguaje, siembra datos y genera código base.</p><p data-l="en">Design processes with blocks, run them with scripts in any language, seed data and generate starter code.</p></div>
+      <div class="card"><span class="ic">📡</span><h3>FTP / SFTP / FTPS</h3><p data-l="es">Como FileZilla: teclado, cola de transferencias, sincronización de carpetas y verificación de claves y certificados.</p><p data-l="en">FileZilla-style: keyboard, transfer queue, folder sync and key/certificate verification.</p></div>
+      <div class="card"><span class="ic">🗄️</span><h3 data-l="es">Bases de datos y API</h3><h3 data-l="en">Databases &amp; API</h3><p data-l="es">MySQL, PostgreSQL, SQLite y Redis, diagrama ER, cliente de API con colecciones y generador de clientes.</p><p data-l="en">MySQL, PostgreSQL, SQLite and Redis, ER diagram, API client with collections and client generator.</p></div>
       <div class="card"><span class="ic">🎨</span><h3 data-l="es">Diseño visual</h3><h3 data-l="en">Visual design</h3><p data-l="es">Edita Quasar, Vue y HTML visualmente, y diseña interfaces nativas para Qt, QML, GTK y juegos.</p><p data-l="en">Edit Quasar, Vue and HTML visually, and design native UIs for Qt, QML, GTK and games.</p></div>
-      <div class="card"><span class="ic">🗄️</span><h3 data-l="es">Bases de datos y API</h3><h3 data-l="en">Databases & API</h3><p data-l="es">MySQL, PostgreSQL, SQLite y Redis, diagrama ER, cliente de API con colecciones y generador de clientes.</p><p data-l="en">MySQL, PostgreSQL, SQLite and Redis, ER diagram, API client with collections and client generator.</p></div>
-      <div class="card"><span class="ic">🤖</span><h3 data-l="es">IA local y en la nube</h3><h3 data-l="en">Local & cloud AI</h3><p data-l="es">Asistente con tus proveedores, agente local con Ollama y contexto del proyecto.</p><p data-l="en">Assistant with your providers, a local agent with Ollama and project context.</p></div>
-      <div class="card"><span class="ic">📱</span><h3 data-l="es">Móvil y escritorio</h3><h3 data-l="en">Mobile & desktop</h3><p data-l="es">Diagnóstico y comandos para Capacitor, Android, Flutter, Qt, GTK y Godot.</p><p data-l="en">Diagnostics and commands for Capacitor, Android, Flutter, Qt, GTK and Godot.</p></div>
-      <div class="card"><span class="ic">🐳</span><h3 data-l="es">Contenedores</h3><h3 data-l="en">Containers</h3><p data-l="es">Podman y Docker: contenedores, pods, logs y shell integrados.</p><p data-l="en">Podman and Docker: containers, pods, logs and shell built in.</p></div>
+      <div class="card"><span class="ic">🤖</span><h3 data-l="es">IA local y en la nube</h3><h3 data-l="en">Local &amp; cloud AI</h3><p data-l="es">Asistente con tus proveedores, agente local con Ollama y CLIs como Claude Code, Gemini y Aider.</p><p data-l="en">Assistant with your providers, a local agent with Ollama and CLIs like Claude Code, Gemini and Aider.</p></div>
+      <div class="card"><span class="ic">🐳</span><h3 data-l="es">Contenedores y móvil</h3><h3 data-l="en">Containers &amp; mobile</h3><p data-l="es">Podman y Docker con pods, logs y shell; diagnóstico para Capacitor, Android, Flutter, Qt, GTK y Godot.</p><p data-l="en">Podman and Docker with pods, logs and shell; diagnostics for Capacitor, Android, Flutter, Qt, GTK and Godot.</p></div>
     </div>
   </section>
 
   <section>
+    <span class="tag"><span data-l="es">Idiomas</span><span data-l="en">Languages</span></span>
     <h2><span data-l="es">En tu idioma</span><span data-l="en">In your language</span></h2>
     <p class="lead"><span data-l="es">La interfaz está disponible en 8 idiomas.</span><span data-l="en">The interface is available in 8 languages.</span></p>
-    <div class="chips"><span>Español</span><span>English</span><span>Deutsch</span><span>Français</span><span>한국어</span><span>中文</span><span>日本語</span><span>Русский</span></div>
+    <div class="chips"><span class="chip">Español</span><span class="chip">English</span><span class="chip">Deutsch</span><span class="chip">Français</span><span class="chip">한국어</span><span class="chip">中文</span><span class="chip">日本語</span><span class="chip">Русский</span></div>
   </section>
 
   <section id="download">
-    <h2><span data-l="es">Descargar</span><span data-l="en">Download</span></h2>
-    <p class="lead"><span data-l="es">Instaladores en la página de releases.</span><span data-l="en">Installers on the releases page.</span></p>
-    <div class="dl">
+    <span class="tag"><span data-l="es">Descargar</span><span data-l="en">Download</span></span>
+    <h2><span data-l="es">Instálalo en un minuto</span><span data-l="en">Install it in a minute</span></h2>
+    <p class="lead"><span data-l="es">Gratis y de código abierto. Las nuevas versiones se instalan solas desde la app.</span><span data-l="en">Free and open source. New versions install themselves from the app.</span></p>
+    <div class="grid dl">
       <div class="card"><b>🐧 Linux</b><span data-l="es">.deb (Debian/Ubuntu) y .AppImage</span><span data-l="en">.deb (Debian/Ubuntu) and .AppImage</span><pre>sudo dpkg -i OweeCode_*.deb</pre></div>
       <div class="card"><b>🪟 Windows</b><span data-l="es">Instalador .exe o .msi</span><span data-l="en">.exe or .msi installer</span></div>
       <div class="card"><b>🍎 macOS</b><span data-l="es">Archivo .dmg: arrástralo a Aplicaciones</span><span data-l="en">.dmg file: drag it to Applications</span></div>
     </div>
-    <p style="margin-top:18px"><a class="btn primary" href="https://github.com/oweeme/oweecode/releases/latest"><span data-l="es">Ir a las descargas →</span><span data-l="en">Go to downloads →</span></a></p>
+    <p style="margin-top:24px"><a class="btn main" href="https://github.com/oweeme/oweecode/releases/latest"><span data-l="es">Ir a las descargas →</span><span data-l="en">Go to downloads →</span></a></p>
   </section>
+</main>
 
-  <footer>
+<footer>
+  <div class="wrap">
     <span data-l="es">Hecho por</span><span data-l="en">Made by</span> <a href="https://oweeme.com">Héctor Martínez · oweeme.com</a> · MIT ·
+    <a href="https://github.com/oweeme/oweecode/blob/main/CHANGELOG.md">Changelog</a> ·
     <a href="https://github.com/oweeme/oweecode/issues"><span data-l="es">Reportar un problema</span><span data-l="en">Report an issue</span></a>
-  </footer>
-</div>
+  </div>
+</footer>
+
 <script>
+  // Language (ES/EN) and theme (light/dark), remembered per visitor.
   (function () {
-    var saved = null; try { saved = localStorage.getItem('owee_site_lang'); } catch (e) {}
-    var lang = saved || ((navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en');
-    function apply(l) {
-      document.documentElement.setAttribute('data-lang', l); document.documentElement.lang = l;
-      document.querySelectorAll('[data-set]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-set') === l); });
-      try { localStorage.setItem('owee_site_lang', l); } catch (e) {}
-    }
-    document.querySelectorAll('[data-set]').forEach(function (b) { b.addEventListener('click', function () { apply(b.getAttribute('data-set')); }); });
-    apply(lang);
-  })();
+    var root = document.documentElement
+    function get(k) { try { return localStorage.getItem(k) } catch (e) { return null } }
+    function set(k, v) { try { localStorage.setItem(k, v) } catch (e) {} }
+
+    var lang = get('owee_site_lang') || ((navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en')
+    function applyLang(l) { lang = l; root.setAttribute('data-lang', l); root.lang = l; document.getElementById('lang').textContent = l === 'es' ? 'EN' : 'ES'; set('owee_site_lang', l) }
+    document.getElementById('lang').addEventListener('click', function () { applyLang(lang === 'es' ? 'en' : 'es') })
+    applyLang(lang)
+
+    var theme = get('owee_site_theme')
+    if (theme) root.setAttribute('data-theme', theme)
+    document.getElementById('theme').addEventListener('click', function () {
+      var dark = root.getAttribute('data-theme') ? root.getAttribute('data-theme') === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+      var next = dark ? 'light' : 'dark'
+      root.setAttribute('data-theme', next); set('owee_site_theme', next)
+    })
+  })()
 </script>
 </body>
 </html>
